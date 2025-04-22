@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef, useState, useEffect, Suspense } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls, Stats } from '@react-three/drei';
@@ -147,7 +148,7 @@ function AudioReactiveElements({ mousePosition, tankSize, fishData, plantPositio
       
       {/* Particles */}
       <Particles 
-        count={200} // Reduced particle count
+        count={150} // Reduced particle count further
         tankSize={tankSize}
         mousePosition={mousePosition}
         audioLevel={audioLevels.bass}
@@ -163,9 +164,9 @@ function AudioReactiveElements({ mousePosition, tankSize, fishData, plantPositio
 export function AquariumScene() {
   const [mousePosition, setMousePosition] = useState<THREE.Vector3 | null>(null);
   const tankSize: [number, number, number] = [10, 6, 10]; // Width, height, depth
-  const [fishCount] = useState(10); // Reduced fish count
-  const [plantCount] = useState(6); // Reduced plant count
-  const [crystalCount] = useState(4); // Reduced crystal count
+  const [fishCount] = useState(8); // Reduced fish count further
+  const [plantCount] = useState(4); // Reduced plant count further
+  const [crystalCount] = useState(3); // Reduced crystal count further
   
   // Generate fish data
   const fishData = useMemo(() => {
@@ -233,20 +234,38 @@ export function AquariumScene() {
     
     window.addEventListener('webglcontextlost', handleContextLoss);
 
-    audioManager.initialize('/audio/main_theme.wav');
-    
-    // Add click event listener to start audio
-    const handleClick = () => {
-      audioManager.play();
-      document.removeEventListener('click', handleClick);
-    };
-    
-    document.addEventListener('click', handleClick);
+    try {
+      // Use a placeholder tone instead of loading a full audio file
+      audioManager.initialize('/audio/main_theme.wav');
+      
+      // Add click event listener to start audio
+      const handleClick = () => {
+        try {
+          audioManager.play();
+        } catch (error) {
+          console.error('Audio play error:', error);
+          toast({
+            title: "Audio Error",
+            description: "Couldn't play audio. Try refreshing the page.",
+            variant: "warning"
+          });
+        }
+        document.removeEventListener('click', handleClick);
+      };
+      
+      document.addEventListener('click', handleClick);
+    } catch (error) {
+      console.error('Audio initialization error:', error);
+    }
     
     return () => {
       document.removeEventListener('click', handleClick);
       window.removeEventListener('webglcontextlost', handleContextLoss);
-      audioManager.pause();
+      try {
+        audioManager.pause();
+      } catch (error) {
+        console.error('Audio pause error:', error);
+      }
     };
   }, []);
   
@@ -267,20 +286,13 @@ export function AquariumScene() {
           <CameraController />
           <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
           
-          {/* Ambient lighting */}
-          <ambientLight intensity={0.2} />
+          {/* Simplified lighting setup */}
+          <ambientLight intensity={0.3} />
+          <directionalLight position={[5, 10, 5]} intensity={0.7} color="#F6F7FF" />
           
-          {/* Main directional light */}
-          <directionalLight 
-            position={[5, 10, 5]} 
-            intensity={0.8} 
-            color="#F6F7FF" 
-          />
-          
-          {/* Colored point lights for atmosphere */}
-          <pointLight position={[5, 3, 0]} intensity={0.5} color="#C9B7FF" />
-          <pointLight position={[-5, -2, 0]} intensity={0.5} color="#FFB1DC" />
-          <pointLight position={[0, -3, 5]} intensity={0.5} color="#A5F3FF" />
+          {/* Reduced number of point lights */}
+          <pointLight position={[5, 3, 0]} intensity={0.4} color="#C9B7FF" />
+          <pointLight position={[-5, -2, 0]} intensity={0.4} color="#FFB1DC" />
           
           <AudioReactiveElements
             mousePosition={mousePosition}
@@ -290,8 +302,8 @@ export function AquariumScene() {
             crystalData={crystalData}
           />
           
-          {/* Performance stats - remove in production */}
-          <Stats />
+          {/* Only include Stats in development */}
+          {process.env.NODE_ENV === 'development' && <Stats />}
         </Suspense>
       </ErrorBoundary>
     </Canvas>
@@ -302,7 +314,7 @@ export function AquariumScene() {
 function LoadingFallback() {
   return (
     <mesh position={[0, 0, 0]}>
-      <sphereGeometry args={[1, 16, 16]} />
+      <sphereGeometry args={[1, 8, 8]} />
       <meshBasicMaterial color="#A5F3FF" wireframe />
     </mesh>
   );

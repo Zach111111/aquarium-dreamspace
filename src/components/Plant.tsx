@@ -22,7 +22,7 @@ export function Plant({
 }: PlantProps) {
   const plantRef = useRef<Mesh>(null);
 
-  // Animate plant swaying in the water current with reduced complexity
+  // Animate plant swaying in the water current with simplified animation
   useFrame(({ clock }) => {
     if (!plantRef.current) return;
     
@@ -34,32 +34,17 @@ export function Plant({
     plantRef.current.rotation.z = sway;
   });
 
+  // Very simplified plant - just a single stem
   return (
     <group position={position}>
-      {/* Base/stem of plant - simplified */}
       <mesh ref={plantRef} position={[0, height/2, 0]}>
-        <cylinderGeometry args={[width * 0.2, width * 0.5, height, segments]} />
+        <cylinderGeometry args={[width * 0.2, width * 0.4, height, segments]} />
         <meshStandardMaterial 
           color={color} 
           emissive={color} 
           emissiveIntensity={0.1} 
           transparent
           opacity={0.9}
-        />
-      </mesh>
-      
-      {/* Single leaf instead of multiple */}
-      <mesh 
-        position={[0, height * 0.6, 0]}
-        rotation={[0, 0, 0]}
-      >
-        <coneGeometry args={[width * 0.6, height * 0.7, segments]} />
-        <meshStandardMaterial 
-          color={color} 
-          emissive={color} 
-          emissiveIntensity={0.1} 
-          transparent
-          opacity={0.85}
         />
       </mesh>
     </group>

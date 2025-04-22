@@ -2,7 +2,6 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { noise3D } from '../utils/noise';
 
 interface ParticlesProps {
   count?: number;
@@ -24,13 +23,13 @@ export function Particles({
   const [tankWidth, tankHeight, tankDepth] = tankSize;
   const points = useRef<THREE.Points>(null);
   
-  // Generate initial random positions
+  // Generate initial random positions - reduced count for better performance
   const positions = useMemo(() => {
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      positions[i * 3 + 0] = (Math.random() - 0.5) * tankWidth;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * tankHeight;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * tankDepth;
+      positions[i * 3 + 0] = (Math.random() - 0.5) * tankWidth * 0.8;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * tankHeight * 0.8;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * tankDepth * 0.8;
     }
     return positions;
   }, [count, tankWidth, tankHeight, tankDepth]);
@@ -44,45 +43,42 @@ export function Particles({
     }));
   }, [count]);
   
-  // Simplified animation for particles
+  // Simplified animation for particles - update fewer particles per frame
   useFrame(({ clock }) => {
     if (!points.current) return;
     
-    const time = clock.getElapsedTime();
     const positions = points.current.geometry.attributes.position.array as Float32Array;
     
-    // Only update every 10th particle each frame for better performance
-    const step = 10;
-    const limit = Math.min(count, 100); // Cap the number of particles we process
+    // Only update a small subset of particles each frame for better performance
+    const step = 20; // Update fewer particles per frame
+    const limit = Math.min(count, 60); // Only process up to 60 particles
     
     for (let i = 0; i < limit; i += step) {
       const i3 = i * 3;
-      const x = positions[i3];
-      const y = positions[i3 + 1];
-      const z = positions[i3 + 2];
       
-      // Simplified movement
+      // Simple movement with minimal calculations
       positions[i3] += velocities[i].x;
       positions[i3 + 1] += velocities[i].y;
       positions[i3 + 2] += velocities[i].z;
       
-      // Simple boundary check - wrap around if out of bounds
+      // Simplified boundary check - wrap around
       if (Math.abs(positions[i3]) > tankWidth/2) {
-        velocities[i].x *= -1; // Reverse direction
+        positions[i3] *= -0.9; // Bounce off wall
       }
       
-      if (Math.abs(positions[i3 + 1]) > tankHeight/2) {
-        velocities[i].y *= -1;
+      if (positions[i3 + 1] > tankHeight/2) {
+        positions[i3 + 1] = -tankHeight/2; // Reset to bottom if reached top
       }
       
       if (Math.abs(positions[i3 + 2]) > tankDepth/2) {
-        velocities[i].z *= -1;
+        positions[i3 + 2] *= -0.9; // Bounce off wall
       }
     }
     
     points.current.geometry.attributes.position.needsUpdate = true;
   });
 
+  // Simplified point material for better performance
   return (
     <points ref={points}>
       <bufferGeometry>
@@ -97,8 +93,8 @@ export function Particles({
         color={color} 
         size={size} 
         transparent
-        opacity={0.6}
-        alphaTest={0.3}
+        opacity={0.4}
+        sizeAttenuation={true}
       />
     </points>
   );

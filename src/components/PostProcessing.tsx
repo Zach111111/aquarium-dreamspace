@@ -3,7 +3,6 @@ import {
   EffectComposer,
   Bloom,
   Noise,
-  Vignette,
 } from '@react-three/postprocessing';
 import { BlendFunction, KernelSize } from 'postprocessing';
 import { useAquariumStore } from '../store/aquariumStore';
@@ -31,13 +30,7 @@ export function PostProcessing({ audioLevel = 0 }: PostProcessingProps) {
         blendFunction={BlendFunction.OVERLAY}
       />
       
-      {/* Vignette darkening around edges */}
-      <Vignette
-        offset={0.2}
-        darkness={0.4}
-        eskil={false}
-        blendFunction={BlendFunction.NORMAL}
-      />
+      {/* Removed Vignette effect which was causing errors */}
     </EffectComposer>
   );
 }
