@@ -1,4 +1,3 @@
-
 import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Vector3, MeshStandardMaterial } from 'three';
@@ -27,40 +26,31 @@ export function Crystal({
   const colorShift = useAquariumStore(state => state.colorShift);
   const originalPosition = useRef(new Vector3(...position));
 
-  // Handle crystal animation and interaction
   useFrame(({ clock }) => {
     if (!crystalRef.current) return;
     
     const time = clock.getElapsedTime();
     
-    // Pulsing based on audio level
     const pulseIntensity = 0.05 * (1 + audioLevel * 0.5);
     const pulse = 1 + Math.sin(time * 3) * pulseIntensity;
     
-    // Apply scale and gentle hover animation
     crystalRef.current.scale.y = height * pulse;
     
-    // If not being dragged, apply gentle floating animation
     if (!isDragged) {
       crystalRef.current.position.y = originalPosition.current.y + Math.sin(time) * 0.05;
     }
     
-    // Apply color shifting if enabled
     if (colorShift) {
-      // Shift hue based on time
-      const hueShift = (Math.sin(time * 0.5) + 1) * 0.5; // 0 to 1
+      const hueShift = (Math.sin(time * 0.5) + 1) * 0.5;
       
       if (crystalRef.current.material instanceof Array) {
         crystalRef.current.material.forEach(mat => {
-          // Cast to MeshStandardMaterial to access emissive property
           const standardMat = mat as MeshStandardMaterial;
           if (standardMat.emissive) {
-            // Apply shifting emissive color
             standardMat.emissive.setHSL(hueShift, 0.8, 0.5);
           }
         });
       } else if (crystalRef.current.material) {
-        // Cast to MeshStandardMaterial to access emissive property
         const standardMat = crystalRef.current.material as MeshStandardMaterial;
         if (standardMat.emissive) {
           standardMat.emissive.setHSL(hueShift, 0.8, 0.5);
@@ -68,19 +58,16 @@ export function Crystal({
       }
     }
     
-    // Add extra glow when hovered or dragged
     const emissiveIntensity = isHovered || isDragged ? 0.6 : 0.3;
     
     if (crystalRef.current.material instanceof Array) {
       crystalRef.current.material.forEach(mat => {
-        // Cast to MeshStandardMaterial to access emissiveIntensity property
         const standardMat = mat as MeshStandardMaterial;
         if (standardMat.emissiveIntensity !== undefined) {
           standardMat.emissiveIntensity = emissiveIntensity * (1 + audioLevel * 0.5);
         }
       });
     } else if (crystalRef.current.material) {
-      // Cast to MeshStandardMaterial to access emissiveIntensity property
       const standardMat = crystalRef.current.material as MeshStandardMaterial;
       if (standardMat.emissiveIntensity !== undefined) {
         standardMat.emissiveIntensity = emissiveIntensity * (1 + audioLevel * 0.5);
@@ -103,7 +90,6 @@ export function Crystal({
       onPointerUp={() => setIsDragged(false)}
       onPointerMove={(e) => {
         if (isDragged && crystalRef.current) {
-          // Limit drag to x-z plane
           const x = e.point.x;
           const z = e.point.z;
           crystalRef.current.position.x = x;
@@ -122,3 +108,5 @@ export function Crystal({
     </mesh>
   );
 }
+
+Crystal.displayName = 'Crystal';

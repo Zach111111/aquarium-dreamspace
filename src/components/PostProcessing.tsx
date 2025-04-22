@@ -60,3 +60,6 @@ export function PostProcessing({ audioLevel = 0 }: PostProcessingProps) {
     </EffectComposer>
   );
 }
+
+// Add displayName to help with component identification
+PostProcessing.displayName = 'PostProcessing';

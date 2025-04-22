@@ -1,4 +1,3 @@
-
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -139,3 +138,5 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     </group>
   );
 }
+
+WaterTank.displayName = 'WaterTank';

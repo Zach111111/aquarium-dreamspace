@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls, Stats } from '@react-three/drei';
@@ -82,8 +83,19 @@ function MouseTracker({ setMousePosition }: { setMousePosition: (position: THREE
   );
 }
 
-// Audio-reactive elements wrapper
-function AudioReactiveScene({ children }: { children: React.ReactNode }) {
+// Audio-reactive scene contents - redesigned to avoid React.cloneElement
+function AudioReactiveElements({ mousePosition, tankSize, fishData, plantPositions, crystalData }: {
+  mousePosition: THREE.Vector3 | null;
+  tankSize: [number, number, number];
+  fishData: Array<{scale: number; speed: number; color: string}>;
+  plantPositions: Array<[number, number, number]>;
+  crystalData: Array<{
+    position: [number, number, number];
+    rotation: [number, number, number];
+    color: string;
+    height: number;
+  }>;
+}) {
   const [audioLevels, setAudioLevels] = useState({ bass: 0, mid: 0, treble: 0 });
   
   // Update audio levels in animation frame
@@ -92,15 +104,59 @@ function AudioReactiveScene({ children }: { children: React.ReactNode }) {
     setAudioLevels(levels);
   });
   
-  // Check if children is a valid element before cloning
-  const childrenWithProps = React.Children.map(children, child => {
-    if (React.isValidElement(child)) {
-      return React.cloneElement(child, { audioLevel: audioLevels.bass });
-    }
-    return child;
-  });
-  
-  return <>{childrenWithProps}</>;
+  // Use the audio level directly in each component 
+  return (
+    <WaterTank size={tankSize} audioLevel={audioLevels.bass}>
+      {/* Generate fish */}
+      {fishData.map((fish, i) => (
+        <Fish
+          key={`fish-${i}`}
+          color={fish.color}
+          scale={fish.scale}
+          speed={fish.speed}
+          tankSize={tankSize}
+          index={i}
+          audioLevel={audioLevels.bass}
+        />
+      ))}
+      
+      {/* Generate plants */}
+      {plantPositions.map((position, i) => (
+        <Plant
+          key={`plant-${i}`}
+          position={position}
+          height={random(1.5, 3)}
+          width={random(0.4, 0.8)}
+          color={i % 2 === 0 ? '#B9FFCE' : '#A5F3FF'}
+          audioLevel={audioLevels.bass}
+        />
+      ))}
+      
+      {/* Generate crystals */}
+      {crystalData.map((crystal, i) => (
+        <Crystal
+          key={`crystal-${i}`}
+          position={crystal.position}
+          rotation={crystal.rotation}
+          color={crystal.color}
+          height={crystal.height}
+          audioLevel={audioLevels.bass}
+          onClick={() => console.log(`Crystal ${i} clicked`)}
+        />
+      ))}
+      
+      {/* Particles */}
+      <Particles 
+        count={300}
+        tankSize={tankSize}
+        mousePosition={mousePosition}
+        audioLevel={audioLevels.bass}
+      />
+      
+      {/* Post-processing effects */}
+      <PostProcessing audioLevel={audioLevels.bass} />
+    </WaterTank>
+  );
 }
 
 // Main aquarium scene component
@@ -204,53 +260,13 @@ export function AquariumScene() {
         <pointLight position={[-5, -2, 0]} intensity={0.5} color="#FFB1DC" />
         <pointLight position={[0, -3, 5]} intensity={0.5} color="#A5F3FF" />
         
-        <AudioReactiveScene>
-          <WaterTank size={tankSize}>
-            {/* Generate fish */}
-            {fishData.map((fish, i) => (
-              <Fish
-                key={`fish-${i}`}
-                color={fish.color}
-                scale={fish.scale}
-                speed={fish.speed}
-                tankSize={tankSize}
-                index={i}
-              />
-            ))}
-            
-            {/* Generate plants */}
-            {plantPositions.map((position, i) => (
-              <Plant
-                key={`plant-${i}`}
-                position={position}
-                height={random(1.5, 3)}
-                width={random(0.4, 0.8)}
-                color={i % 2 === 0 ? '#B9FFCE' : '#A5F3FF'}
-              />
-            ))}
-            
-            {/* Generate crystals */}
-            {crystalData.map((crystal, i) => (
-              <Crystal
-                key={`crystal-${i}`}
-                position={crystal.position}
-                rotation={crystal.rotation}
-                color={crystal.color}
-                height={crystal.height}
-                onClick={() => console.log(`Crystal ${i} clicked`)}
-              />
-            ))}
-            
-            {/* Particles */}
-            <Particles 
-              count={300}
-              tankSize={tankSize}
-              mousePosition={mousePosition}
-            />
-          </WaterTank>
-          
-          <PostProcessing />
-        </AudioReactiveScene>
+        <AudioReactiveElements
+          mousePosition={mousePosition}
+          tankSize={tankSize}
+          fishData={fishData}
+          plantPositions={plantPositions}
+          crystalData={crystalData}
+        />
         
         {/* Performance stats - remove in production */}
         <Stats />
@@ -258,3 +274,4 @@ export function AquariumScene() {
     </Canvas>
   );
 }
+

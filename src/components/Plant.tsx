@@ -1,4 +1,3 @@
-
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
@@ -73,3 +72,5 @@ export function Plant({
     </group>
   );
 }
+
+Plant.displayName = 'Plant';

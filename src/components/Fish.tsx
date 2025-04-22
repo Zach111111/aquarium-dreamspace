@@ -1,4 +1,3 @@
-
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { MathUtils, Mesh, Vector3 } from 'three';
@@ -86,3 +85,5 @@ export function Fish({
     </mesh>
   );
 }
+
+Fish.displayName = 'Fish';
