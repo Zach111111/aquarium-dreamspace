@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,14 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Aquarium Dreamspace color palette
+				aquarium: {
+					purple: '#C9B7FF',
+					blue: '#A5F3FF',
+					pink: '#FFB1DC',
+					green: '#B9FFCE',
+					white: '#F6F7FF',
 				}
 			},
 			borderRadius: {
@@ -84,11 +93,32 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'float': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' }
+				},
+				'pulse-light': {
+					'0%, 100%': { opacity: '0.85' },
+					'50%': { opacity: '1' }
+				},
+				'scanline': {
+					'0%': { transform: 'translateY(0)' },
+					'100%': { transform: 'translateY(100%)' }
+				},
+				'glitch': {
+					'0%, 100%': { transform: 'translate(0)' },
+					'33%': { transform: 'translate(-5px, 2px)' },
+					'66%': { transform: 'translate(5px, -2px)' },
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'float': 'float 6s ease-in-out infinite',
+				'pulse-light': 'pulse-light 4s ease-in-out infinite',
+				'scanline': 'scanline 8s linear infinite',
+				'glitch': 'glitch 0.5s ease-in-out infinite'
 			}
 		}
 	},

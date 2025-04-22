@@ -1,0 +1,112 @@
+
+import { useRef, useState } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { Mesh, Vector3 } from 'three';
+import { useAquariumStore } from '../store/aquariumStore';
+
+interface CrystalProps {
+  position: [number, number, number];
+  color?: string;
+  height?: number;
+  rotation?: [number, number, number];
+  audioLevel?: number;
+  onClick?: () => void;
+}
+
+export function Crystal({ 
+  position, 
+  color = '#C9B7FF', 
+  height = 1,
+  rotation = [0, 0, 0],
+  audioLevel = 0,
+  onClick
+}: CrystalProps) {
+  const crystalRef = useRef<Mesh>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isDragged, setIsDragged] = useState(false);
+  const colorShift = useAquariumStore(state => state.colorShift);
+  const originalPosition = useRef(new Vector3(...position));
+
+  // Handle crystal animation and interaction
+  useFrame(({ clock }) => {
+    if (!crystalRef.current) return;
+    
+    const time = clock.getElapsedTime();
+    
+    // Pulsing based on audio level
+    const pulseIntensity = 0.05 * (1 + audioLevel * 0.5);
+    const pulse = 1 + Math.sin(time * 3) * pulseIntensity;
+    
+    // Apply scale and gentle hover animation
+    crystalRef.current.scale.y = height * pulse;
+    
+    // If not being dragged, apply gentle floating animation
+    if (!isDragged) {
+      crystalRef.current.position.y = originalPosition.current.y + Math.sin(time) * 0.05;
+    }
+    
+    // Apply color shifting if enabled
+    if (colorShift) {
+      // Shift hue based on time
+      const hueShift = (Math.sin(time * 0.5) + 1) * 0.5; // 0 to 1
+      
+      if (crystalRef.current.material instanceof Array) {
+        crystalRef.current.material.forEach(mat => {
+          if (mat.emissive) {
+            // Apply shifting emissive color
+            mat.emissive.setHSL(hueShift, 0.8, 0.5);
+          }
+        });
+      } else if (crystalRef.current.material && crystalRef.current.material.emissive) {
+        crystalRef.current.material.emissive.setHSL(hueShift, 0.8, 0.5);
+      }
+    }
+    
+    // Add extra glow when hovered or dragged
+    const emissiveIntensity = isHovered || isDragged ? 0.6 : 0.3;
+    
+    if (crystalRef.current.material instanceof Array) {
+      crystalRef.current.material.forEach(mat => {
+        if (mat.emissiveIntensity !== undefined) {
+          mat.emissiveIntensity = emissiveIntensity * (1 + audioLevel * 0.5);
+        }
+      });
+    } else if (crystalRef.current.material && crystalRef.current.material.emissiveIntensity !== undefined) {
+      crystalRef.current.material.emissiveIntensity = emissiveIntensity * (1 + audioLevel * 0.5);
+    }
+  });
+
+  return (
+    <mesh
+      ref={crystalRef}
+      position={position}
+      rotation={rotation}
+      onPointerOver={() => setIsHovered(true)}
+      onPointerOut={() => setIsHovered(false)}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        setIsDragged(true);
+        if (onClick) onClick();
+      }}
+      onPointerUp={() => setIsDragged(false)}
+      onPointerMove={(e) => {
+        if (isDragged && crystalRef.current) {
+          // Limit drag to x-z plane
+          const x = e.point.x;
+          const z = e.point.z;
+          crystalRef.current.position.x = x;
+          crystalRef.current.position.z = z;
+        }
+      }}
+    >
+      <octahedronGeometry args={[0.5, 0]} />
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={0.3}
+        roughness={0.2}
+        metalness={0.8}
+      />
+    </mesh>
+  );
+}
