@@ -1,7 +1,6 @@
-
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
+import { PerspectiveCamera, OrbitControls, Stats } from '@react-three/drei';
 import * as THREE from 'three';
 import { Fish } from './Fish';
 import { Plant } from './Plant';
@@ -93,11 +92,10 @@ function AudioReactiveScene({ children }: { children: React.ReactNode }) {
     setAudioLevels(levels);
   });
   
-  // Clone children with audio level props
+  // Check if children is a valid element before cloning
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
-      // Use type assertion to safely add audioLevel prop
-      return React.cloneElement(child as React.ReactElement<any>, { audioLevel: audioLevels.bass });
+      return React.cloneElement(child, { audioLevel: audioLevels.bass });
     }
     return child;
   });
@@ -186,73 +184,77 @@ export function AquariumScene() {
   
   return (
     <Canvas style={{ background: 'linear-gradient(to bottom, #1A1F2C, #222744)' }}>
-      <MouseTracker setMousePosition={setMousePosition} />
-      <CameraController />
-      <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
-      
-      {/* Ambient lighting */}
-      <ambientLight intensity={0.2} />
-      
-      {/* Main directional light */}
-      <directionalLight 
-        position={[5, 10, 5]} 
-        intensity={0.8} 
-        color="#F6F7FF" 
-      />
-      
-      {/* Colored point lights for atmosphere */}
-      <pointLight position={[5, 3, 0]} intensity={0.5} color="#C9B7FF" />
-      <pointLight position={[-5, -2, 0]} intensity={0.5} color="#FFB1DC" />
-      <pointLight position={[0, -3, 5]} intensity={0.5} color="#A5F3FF" />
-      
-      <AudioReactiveScene>
-        <WaterTank size={tankSize}>
-          {/* Generate fish */}
-          {fishData.map((fish, i) => (
-            <Fish
-              key={`fish-${i}`}
-              color={fish.color}
-              scale={fish.scale}
-              speed={fish.speed}
-              tankSize={tankSize}
-              index={i}
-            />
-          ))}
-          
-          {/* Generate plants */}
-          {plantPositions.map((position, i) => (
-            <Plant
-              key={`plant-${i}`}
-              position={position}
-              height={random(1.5, 3)}
-              width={random(0.4, 0.8)}
-              color={i % 2 === 0 ? '#B9FFCE' : '#A5F3FF'}
-            />
-          ))}
-          
-          {/* Generate crystals */}
-          {crystalData.map((crystal, i) => (
-            <Crystal
-              key={`crystal-${i}`}
-              position={crystal.position}
-              rotation={crystal.rotation}
-              color={crystal.color}
-              height={crystal.height}
-              onClick={() => console.log(`Crystal ${i} clicked`)}
-            />
-          ))}
-          
-          {/* Particles */}
-          <Particles 
-            count={300}
-            tankSize={tankSize}
-            mousePosition={mousePosition}
-          />
-        </WaterTank>
+      <React.Suspense fallback={null}>
+        <MouseTracker setMousePosition={setMousePosition} />
+        <CameraController />
+        <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
         
-        {/* Post-processing effects */}
-        <PostProcessing />
-      </AudioReactiveScene>
+        {/* Ambient lighting */}
+        <ambientLight intensity={0.2} />
+        
+        {/* Main directional light */}
+        <directionalLight 
+          position={[5, 10, 5]} 
+          intensity={0.8} 
+          color="#F6F7FF" 
+        />
+        
+        {/* Colored point lights for atmosphere */}
+        <pointLight position={[5, 3, 0]} intensity={0.5} color="#C9B7FF" />
+        <pointLight position={[-5, -2, 0]} intensity={0.5} color="#FFB1DC" />
+        <pointLight position={[0, -3, 5]} intensity={0.5} color="#A5F3FF" />
+        
+        <AudioReactiveScene>
+          <WaterTank size={tankSize}>
+            {/* Generate fish */}
+            {fishData.map((fish, i) => (
+              <Fish
+                key={`fish-${i}`}
+                color={fish.color}
+                scale={fish.scale}
+                speed={fish.speed}
+                tankSize={tankSize}
+                index={i}
+              />
+            ))}
+            
+            {/* Generate plants */}
+            {plantPositions.map((position, i) => (
+              <Plant
+                key={`plant-${i}`}
+                position={position}
+                height={random(1.5, 3)}
+                width={random(0.4, 0.8)}
+                color={i % 2 === 0 ? '#B9FFCE' : '#A5F3FF'}
+              />
+            ))}
+            
+            {/* Generate crystals */}
+            {crystalData.map((crystal, i) => (
+              <Crystal
+                key={`crystal-${i}`}
+                position={crystal.position}
+                rotation={crystal.rotation}
+                color={crystal.color}
+                height={crystal.height}
+                onClick={() => console.log(`Crystal ${i} clicked`)}
+              />
+            ))}
+            
+            {/* Particles */}
+            <Particles 
+              count={300}
+              tankSize={tankSize}
+              mousePosition={mousePosition}
+            />
+          </WaterTank>
+          
+          <PostProcessing />
+        </AudioReactiveScene>
+        
+        {/* Performance stats - remove in production */}
+        <Stats />
+      </React.Suspense>
     </Canvas>
   );
 }

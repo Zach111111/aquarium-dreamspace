@@ -7,7 +7,6 @@ import {
   Noise,
   Vignette,
   Scanline,
-  GodRays
 } from '@react-three/postprocessing';
 import { BlendFunction, Resizer, KernelSize } from 'postprocessing';
 import { useAquariumStore } from '../store/aquariumStore';
