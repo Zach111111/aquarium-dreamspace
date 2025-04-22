@@ -1,7 +1,7 @@
 
 import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Mesh, Vector3 } from 'three';
+import { Mesh, Vector3, MeshStandardMaterial } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
 
 interface CrystalProps {
@@ -52,13 +52,19 @@ export function Crystal({
       
       if (crystalRef.current.material instanceof Array) {
         crystalRef.current.material.forEach(mat => {
-          if (mat.emissive) {
+          // Cast to MeshStandardMaterial to access emissive property
+          const standardMat = mat as MeshStandardMaterial;
+          if (standardMat.emissive) {
             // Apply shifting emissive color
-            mat.emissive.setHSL(hueShift, 0.8, 0.5);
+            standardMat.emissive.setHSL(hueShift, 0.8, 0.5);
           }
         });
-      } else if (crystalRef.current.material && crystalRef.current.material.emissive) {
-        crystalRef.current.material.emissive.setHSL(hueShift, 0.8, 0.5);
+      } else if (crystalRef.current.material) {
+        // Cast to MeshStandardMaterial to access emissive property
+        const standardMat = crystalRef.current.material as MeshStandardMaterial;
+        if (standardMat.emissive) {
+          standardMat.emissive.setHSL(hueShift, 0.8, 0.5);
+        }
       }
     }
     
@@ -67,12 +73,18 @@ export function Crystal({
     
     if (crystalRef.current.material instanceof Array) {
       crystalRef.current.material.forEach(mat => {
-        if (mat.emissiveIntensity !== undefined) {
-          mat.emissiveIntensity = emissiveIntensity * (1 + audioLevel * 0.5);
+        // Cast to MeshStandardMaterial to access emissiveIntensity property
+        const standardMat = mat as MeshStandardMaterial;
+        if (standardMat.emissiveIntensity !== undefined) {
+          standardMat.emissiveIntensity = emissiveIntensity * (1 + audioLevel * 0.5);
         }
       });
-    } else if (crystalRef.current.material && crystalRef.current.material.emissiveIntensity !== undefined) {
-      crystalRef.current.material.emissiveIntensity = emissiveIntensity * (1 + audioLevel * 0.5);
+    } else if (crystalRef.current.material) {
+      // Cast to MeshStandardMaterial to access emissiveIntensity property
+      const standardMat = crystalRef.current.material as MeshStandardMaterial;
+      if (standardMat.emissiveIntensity !== undefined) {
+        standardMat.emissiveIntensity = emissiveIntensity * (1 + audioLevel * 0.5);
+      }
     }
   });
 

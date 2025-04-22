@@ -1,5 +1,5 @@
 
-import { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -96,7 +96,8 @@ function AudioReactiveScene({ children }: { children: React.ReactNode }) {
   // Clone children with audio level props
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
-      return React.cloneElement(child, { audioLevel: audioLevels.bass });
+      // Use type assertion to safely add audioLevel prop
+      return React.cloneElement(child as React.ReactElement<any>, { audioLevel: audioLevels.bass });
     }
     return child;
   });

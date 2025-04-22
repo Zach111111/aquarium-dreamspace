@@ -11,6 +11,7 @@ import {
 } from '@react-three/postprocessing';
 import { BlendFunction, Resizer, KernelSize } from 'postprocessing';
 import { useAquariumStore } from '../store/aquariumStore';
+import { Vector2 } from 'three';
 
 interface PostProcessingProps {
   audioLevel?: number;
@@ -31,7 +32,7 @@ export function PostProcessing({ audioLevel = 0 }: PostProcessingProps) {
       
       {/* Subtle chromatic aberration */}
       <ChromaticAberration 
-        offset={[0.002 + audioLevel * 0.002, 0.002 + audioLevel * 0.002]} 
+        offset={new Vector2(0.002 + audioLevel * 0.002, 0.002 + audioLevel * 0.002)} 
         blendFunction={BlendFunction.NORMAL}
       />
       
