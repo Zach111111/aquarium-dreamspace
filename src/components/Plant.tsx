@@ -1,3 +1,4 @@
+
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
@@ -21,7 +22,7 @@ export function Plant({
 }: PlantProps) {
   const plantRef = useRef<Mesh>(null);
 
-  // Animate plant swaying in the water current
+  // Animate plant swaying in the water current with reduced complexity
   useFrame(({ clock }) => {
     if (!plantRef.current) return;
     
@@ -30,45 +31,37 @@ export function Plant({
     // Base sway plus audio reactivity
     const sway = Math.sin(time * 1.5) * 0.1 * (1 + audioLevel * 0.5);
     
-    plantRef.current.rotation.x = sway * 0.2;
     plantRef.current.rotation.z = sway;
   });
 
   return (
     <group position={position}>
-      {/* Base/stem of plant */}
+      {/* Base/stem of plant - simplified */}
       <mesh ref={plantRef} position={[0, height/2, 0]}>
         <cylinderGeometry args={[width * 0.2, width * 0.5, height, segments]} />
         <meshStandardMaterial 
           color={color} 
           emissive={color} 
-          emissiveIntensity={0.2} 
+          emissiveIntensity={0.1} 
           transparent
           opacity={0.9}
         />
       </mesh>
       
-      {/* Plant leaves */}
-      {Array.from({ length: 3 }).map((_, i) => (
-        <mesh 
-          key={i} 
-          position={[
-            (i - 1) * width * 0.7, 
-            height * 0.6 + i * height * 0.1, 
-            0
-          ]}
-          rotation={[0, 0, ((i - 1) * Math.PI / 4)]}
-        >
-          <coneGeometry args={[width * 0.6, height * 0.7, segments]} />
-          <meshStandardMaterial 
-            color={color} 
-            emissive={color} 
-            emissiveIntensity={0.2} 
-            transparent
-            opacity={0.85}
-          />
-        </mesh>
-      ))}
+      {/* Single leaf instead of multiple */}
+      <mesh 
+        position={[0, height * 0.6, 0]}
+        rotation={[0, 0, 0]}
+      >
+        <coneGeometry args={[width * 0.6, height * 0.7, segments]} />
+        <meshStandardMaterial 
+          color={color} 
+          emissive={color} 
+          emissiveIntensity={0.1} 
+          transparent
+          opacity={0.85}
+        />
+      </mesh>
     </group>
   );
 }

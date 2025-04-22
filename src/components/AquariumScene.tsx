@@ -1,5 +1,4 @@
-
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect, Suspense } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls, Stats } from '@react-three/drei';
 import * as THREE from 'three';
@@ -12,6 +11,7 @@ import { PostProcessing } from './PostProcessing';
 import { useAquariumStore } from '../store/aquariumStore';
 import { audioManager } from '../utils/audio';
 import { random } from '../utils/noise';
+import { toast } from "@/components/ui/use-toast";
 
 // Camera controller with audio-reactive movement
 function CameraController() {
@@ -83,7 +83,7 @@ function MouseTracker({ setMousePosition }: { setMousePosition: (position: THREE
   );
 }
 
-// Audio-reactive scene contents - redesigned to avoid React.cloneElement
+// Audio-reactive scene contents
 function AudioReactiveElements({ mousePosition, tankSize, fishData, plantPositions, crystalData }: {
   mousePosition: THREE.Vector3 | null;
   tankSize: [number, number, number];
@@ -147,7 +147,7 @@ function AudioReactiveElements({ mousePosition, tankSize, fishData, plantPositio
       
       {/* Particles */}
       <Particles 
-        count={300}
+        count={200} // Reduced particle count
         tankSize={tankSize}
         mousePosition={mousePosition}
         audioLevel={audioLevels.bass}
@@ -163,9 +163,9 @@ function AudioReactiveElements({ mousePosition, tankSize, fishData, plantPositio
 export function AquariumScene() {
   const [mousePosition, setMousePosition] = useState<THREE.Vector3 | null>(null);
   const tankSize: [number, number, number] = [10, 6, 10]; // Width, height, depth
-  const [fishCount] = useState(15);
-  const [plantCount] = useState(8);
-  const [crystalCount] = useState(6);
+  const [fishCount] = useState(10); // Reduced fish count
+  const [plantCount] = useState(6); // Reduced plant count
+  const [crystalCount] = useState(4); // Reduced crystal count
   
   // Generate fish data
   const fishData = useMemo(() => {
@@ -222,6 +222,17 @@ export function AquariumScene() {
   
   // Initialize audio
   useEffect(() => {
+    // Setup error handler for WebGL context loss
+    const handleContextLoss = () => {
+      toast({
+        title: "Graphics Error",
+        description: "WebGL context lost. Try refreshing the page.",
+        variant: "destructive"
+      });
+    };
+    
+    window.addEventListener('webglcontextlost', handleContextLoss);
+
     audioManager.initialize('/audio/main_theme.wav');
     
     // Add click event listener to start audio
@@ -234,44 +245,99 @@ export function AquariumScene() {
     
     return () => {
       document.removeEventListener('click', handleClick);
+      window.removeEventListener('webglcontextlost', handleContextLoss);
       audioManager.pause();
     };
   }, []);
   
   return (
-    <Canvas style={{ background: 'linear-gradient(to bottom, #1A1F2C, #222744)' }}>
-      <React.Suspense fallback={null}>
-        <MouseTracker setMousePosition={setMousePosition} />
-        <CameraController />
-        <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
-        
-        {/* Ambient lighting */}
-        <ambientLight intensity={0.2} />
-        
-        {/* Main directional light */}
-        <directionalLight 
-          position={[5, 10, 5]} 
-          intensity={0.8} 
-          color="#F6F7FF" 
-        />
-        
-        {/* Colored point lights for atmosphere */}
-        <pointLight position={[5, 3, 0]} intensity={0.5} color="#C9B7FF" />
-        <pointLight position={[-5, -2, 0]} intensity={0.5} color="#FFB1DC" />
-        <pointLight position={[0, -3, 5]} intensity={0.5} color="#A5F3FF" />
-        
-        <AudioReactiveElements
-          mousePosition={mousePosition}
-          tankSize={tankSize}
-          fishData={fishData}
-          plantPositions={plantPositions}
-          crystalData={crystalData}
-        />
-        
-        {/* Performance stats - remove in production */}
-        <Stats />
-      </React.Suspense>
+    <Canvas 
+      style={{ background: 'linear-gradient(to bottom, #1A1F2C, #222744)' }}
+      gl={{ 
+        antialias: false, // Disable antialiasing for performance
+        powerPreference: 'low-power', // Request low power mode for better stability
+        alpha: false,
+        stencil: false,
+        depth: true,
+      }}
+    >
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>
+          <MouseTracker setMousePosition={setMousePosition} />
+          <CameraController />
+          <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
+          
+          {/* Ambient lighting */}
+          <ambientLight intensity={0.2} />
+          
+          {/* Main directional light */}
+          <directionalLight 
+            position={[5, 10, 5]} 
+            intensity={0.8} 
+            color="#F6F7FF" 
+          />
+          
+          {/* Colored point lights for atmosphere */}
+          <pointLight position={[5, 3, 0]} intensity={0.5} color="#C9B7FF" />
+          <pointLight position={[-5, -2, 0]} intensity={0.5} color="#FFB1DC" />
+          <pointLight position={[0, -3, 5]} intensity={0.5} color="#A5F3FF" />
+          
+          <AudioReactiveElements
+            mousePosition={mousePosition}
+            tankSize={tankSize}
+            fishData={fishData}
+            plantPositions={plantPositions}
+            crystalData={crystalData}
+          />
+          
+          {/* Performance stats - remove in production */}
+          <Stats />
+        </Suspense>
+      </ErrorBoundary>
     </Canvas>
   );
 }
 
+// Simple loading fallback
+function LoadingFallback() {
+  return (
+    <mesh position={[0, 0, 0]}>
+      <sphereGeometry args={[1, 16, 16]} />
+      <meshBasicMaterial color="#A5F3FF" wireframe />
+    </mesh>
+  );
+}
+
+// Simple error boundary component
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("3D Scene Error:", error, errorInfo);
+    toast({
+      title: "Rendering Error",
+      description: "There was a problem rendering the 3D scene. Try refreshing.",
+      variant: "destructive"
+    });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial color="red" />
+        </mesh>
+      );
+    }
+
+    return this.props.children;
+  }
+}

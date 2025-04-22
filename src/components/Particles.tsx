@@ -1,3 +1,4 @@
+
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -43,64 +44,39 @@ export function Particles({
     }));
   }, [count]);
   
-  // Animation for particles
+  // Simplified animation for particles
   useFrame(({ clock }) => {
     if (!points.current) return;
     
     const time = clock.getElapsedTime();
     const positions = points.current.geometry.attributes.position.array as Float32Array;
     
-    // Apply noise and mouse attraction to particle movement
-    for (let i = 0; i < count; i++) {
+    // Only update every 10th particle each frame for better performance
+    const step = 10;
+    const limit = Math.min(count, 100); // Cap the number of particles we process
+    
+    for (let i = 0; i < limit; i += step) {
       const i3 = i * 3;
       const x = positions[i3];
       const y = positions[i3 + 1];
       const z = positions[i3 + 2];
       
-      // Apply perlin noise for natural movement
-      const noiseScale = 0.5;
-      const noiseStrength = 0.01 * (1 + audioLevel);
-      const nx = noise3D(x * noiseScale, y * noiseScale, time * 0.3) * noiseStrength;
-      const ny = noise3D(x * noiseScale, y * noiseScale + 100, time * 0.3) * noiseStrength;
-      const nz = noise3D(x * noiseScale, y * noiseScale + 200, time * 0.3) * noiseStrength;
+      // Simplified movement
+      positions[i3] += velocities[i].x;
+      positions[i3 + 1] += velocities[i].y;
+      positions[i3 + 2] += velocities[i].z;
       
-      // Mouse attraction if mouse position is available
-      let mouseAttraction = { x: 0, y: 0, z: 0 };
-      if (mousePosition) {
-        const dx = mousePosition.x - x;
-        const dy = mousePosition.y - y;
-        const dz = mousePosition.z - z;
-        const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-        
-        if (distance < 2) { // Attraction radius
-          const strength = (1 - distance/2) * 0.02; // Stronger when closer
-          mouseAttraction = {
-            x: dx * strength,
-            y: dy * strength,
-            z: dz * strength
-          };
-        }
-      }
-      
-      // Update position with noise, velocity and mouse attraction
-      positions[i3] += nx + velocities[i].x + mouseAttraction.x;
-      positions[i3 + 1] += ny + velocities[i].y + mouseAttraction.y;
-      positions[i3 + 2] += nz + velocities[i].z + mouseAttraction.z;
-      
-      // Boundary check - wrap around if out of bounds
+      // Simple boundary check - wrap around if out of bounds
       if (Math.abs(positions[i3]) > tankWidth/2) {
-        positions[i3] = -positions[i3] * 0.9; // Bounce back from walls
-        velocities[i].x *= -0.5; // Reverse direction with damping
+        velocities[i].x *= -1; // Reverse direction
       }
       
       if (Math.abs(positions[i3 + 1]) > tankHeight/2) {
-        positions[i3 + 1] = -positions[i3 + 1] * 0.9;
-        velocities[i].y *= -0.5;
+        velocities[i].y *= -1;
       }
       
       if (Math.abs(positions[i3 + 2]) > tankDepth/2) {
-        positions[i3 + 2] = -positions[i3 + 2] * 0.9;
-        velocities[i].z *= -0.5;
+        velocities[i].z *= -1;
       }
     }
     
@@ -119,7 +95,7 @@ export function Particles({
       </bufferGeometry>
       <pointsMaterial 
         color={color} 
-        size={size * (1 + audioLevel * 0.5)} 
+        size={size} 
         transparent
         opacity={0.6}
         alphaTest={0.3}
