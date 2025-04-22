@@ -34,6 +34,8 @@ export function PostProcessing({ audioLevel = 0 }: PostProcessingProps) {
       <ChromaticAberration 
         offset={new Vector2(0.002 + audioLevel * 0.002, 0.002 + audioLevel * 0.002)} 
         blendFunction={BlendFunction.NORMAL}
+        radialModulation={false}
+        modulationOffset={0.0}
       />
       
       {/* Film grain */}
