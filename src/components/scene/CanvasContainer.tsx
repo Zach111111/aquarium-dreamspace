@@ -87,10 +87,10 @@ export function CanvasContainer({ children, onError }: CanvasContainerProps) {
           gl.setClearColor(new THREE.Color('#1A1F2C'));
           console.log("Canvas created successfully");
           
-          // Only update camera aspect if it's a PerspectiveCamera
+          // Proper type checking before accessing camera properties
           const resize = () => {
             gl.setSize(window.innerWidth, window.innerHeight);
-            if (camera.type === 'PerspectiveCamera') {
+            if (camera instanceof THREE.PerspectiveCamera) {
               camera.aspect = window.innerWidth / window.innerHeight;
               camera.updateProjectionMatrix();
             }

@@ -7,6 +7,7 @@ import { DebugCube } from './scene/DebugCube';
 import { ErrorBoundary } from './ErrorBoundary';
 import { Lighting } from './Lighting';
 import { toast } from "@/components/ui/use-toast";
+import * as THREE from 'three';
 
 export function FishTankDemo() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -63,8 +64,8 @@ export function FishTankDemo() {
             onCreated={({ gl, camera }) => {
               const resize = () => {
                 gl.setSize(window.innerWidth, window.innerHeight);
-                // Type guard for camera to ensure it has aspect property
-                if (camera.type === 'PerspectiveCamera') {
+                // Properly type check before accessing the aspect property
+                if (camera instanceof THREE.PerspectiveCamera) {
                   camera.aspect = window.innerWidth / window.innerHeight;
                   camera.updateProjectionMatrix();
                 }
