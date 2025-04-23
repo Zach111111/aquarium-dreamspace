@@ -1,3 +1,4 @@
+
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -61,6 +62,8 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
       }
     `,
     fragmentShader: `
+      precision mediump float;
+      
       uniform float uTime;
       uniform vec3 uColor;
       uniform float uAudioLevel;
