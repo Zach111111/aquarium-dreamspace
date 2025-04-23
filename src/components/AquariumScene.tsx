@@ -5,7 +5,7 @@ import * as THREE from 'three';
 
 import { Lighting } from './Lighting';
 import { AudioReactiveElements } from './AudioReactiveElements';
-// import { ErrorBoundary } from './ErrorBoundary'; // Commenting out ErrorBoundary
+// import { ErrorBoundary } from './ErrorBoundary'; // ErrorBoundary intentionally removed for production scene
 import { LoadingFallback } from './LoadingFallback';
 
 import { PerspectiveCamera, Stats } from '@react-three/drei';
@@ -169,18 +169,13 @@ export function AquariumScene() {
         stencil: false,
       }}
     >
-      {/* Hot pink test cube */}
-      <mesh>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="hotpink" />
-      </mesh>
-      
       <Suspense fallback={<LoadingFallback />}>
         <MouseTracker setMousePosition={setMousePosition} />
         
         <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
         <Lighting />
 
+        {/* Main Dreamspace aquarium scene below */}
         <AudioReactiveElements
           mousePosition={mousePosition}
           tankSize={tankSize}

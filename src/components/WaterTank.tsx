@@ -96,8 +96,8 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     `,
   };
 
-  // Enable simple material for debugging
-  const useSimpleMaterial = true;
+  // Use the custom water shader for final scene
+  const useSimpleMaterial = false;
 
   // thickness for the glass walls
   const wallThickness = 0.25;
@@ -158,3 +158,4 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
 }
 
 WaterTank.displayName = 'WaterTank';
+
