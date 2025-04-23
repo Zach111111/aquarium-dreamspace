@@ -2,6 +2,7 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
+import { useAquariumStore } from '../store/aquariumStore';
 
 interface PlantProps {
   position: [number, number, number];
@@ -21,20 +22,23 @@ export function Plant({
   audioLevel = 0 
 }: PlantProps) {
   const plantRef = useRef<Mesh>(null);
+  const speedFactor = useAquariumStore(state => state.speedFactor);
 
-  // Animate plant swaying in the water current with simplified animation
+  // Animate plant swaying with steady, controlled motion
   useFrame(({ clock }) => {
     if (!plantRef.current) return;
     
     const time = clock.getElapsedTime();
     
-    // Base sway plus audio reactivity
-    const sway = Math.sin(time * 1.5) * 0.1 * (1 + audioLevel * 0.5);
+    // Steady, predictable movement based on global speed factor
+    const baseSway = 0.05;
+    const swaySpeed = 0.8 * speedFactor;
+    const sway = Math.sin(time * swaySpeed) * baseSway;
     
     plantRef.current.rotation.z = sway;
   });
 
-  // Very simplified plant - just a single stem
+  // Ensure plant is visible on load with improved geometry
   return (
     <group position={position}>
       <mesh ref={plantRef} position={[0, height/2, 0]}>

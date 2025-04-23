@@ -14,9 +14,11 @@ export const ExploreMenu = ({ isVisible }: ExploreMenuProps) => {
     orbitSpeed, 
     colorShift, 
     musicVolume,
+    speedFactor,
     setOrbitSpeed, 
     toggleColorShift, 
-    setMusicVolume 
+    setMusicVolume,
+    setSpeedFactor
   } = useAquariumStore();
 
   // Update audio volume when musicVolume changes
@@ -41,13 +43,29 @@ export const ExploreMenu = ({ isVisible }: ExploreMenuProps) => {
   if (!isVisible) return null;
 
   return (
-    <div className={`absolute bottom-10 right-10 z-10 bg-black/40 backdrop-blur-md p-6 rounded-lg border border-aquarium-blue/30 text-aquarium-white ${glitchClass}`}>
+    <div className={`absolute top-20 right-10 z-10 bg-black/40 backdrop-blur-md p-6 rounded-lg border border-aquarium-blue/30 text-aquarium-white ${glitchClass}`}>
       <div className="mb-6 text-center">
-        <h2 className="text-xl font-bold text-aquarium-blue mb-1">EXPLORE</h2>
+        <h2 className="text-xl font-bold text-aquarium-blue mb-1">SETTINGS</h2>
         <div className="h-0.5 w-full bg-gradient-to-r from-aquarium-purple/0 via-aquarium-blue to-aquarium-purple/0"></div>
       </div>
       
       <div className="space-y-6">
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label htmlFor="speed-factor" className="text-sm text-aquarium-blue">ANIMATION SPEED</label>
+            <span className="text-xs opacity-70">{Math.round(speedFactor * 100)}%</span>
+          </div>
+          <Slider
+            id="speed-factor"
+            defaultValue={[speedFactor]}
+            min={0.1}
+            max={2.0}
+            step={0.1}
+            onValueChange={(value) => setSpeedFactor(value[0])}
+            className="cursor-pointer"
+          />
+        </div>
+
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <label htmlFor="orbit-speed" className="text-sm text-aquarium-blue">CAMERA ORBIT</label>
@@ -86,10 +104,6 @@ export const ExploreMenu = ({ isVisible }: ExploreMenuProps) => {
             onCheckedChange={toggleColorShift}
           />
         </div>
-      </div>
-      
-      <div className="mt-6 text-center opacity-70">
-        <p className="text-xs">LONG-PRESS TANK TO TOGGLE MENU</p>
       </div>
     </div>
   );

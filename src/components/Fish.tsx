@@ -3,6 +3,7 @@ import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Vector3 } from 'three';
 import { random } from '../utils/noise';
+import { useAquariumStore } from '../store/aquariumStore';
 
 interface FishProps {
   color?: string;
@@ -29,21 +30,24 @@ export function Fish({
     (Math.random() - 0.5) * 0.02 * speed
   ));
   
+  // Get global speed factor from store
+  const speedFactor = useAquariumStore(state => state.speedFactor);
+  
   // Set initial random position
   useEffect(() => {
     if (fishRef.current) {
       const [tankWidth, tankHeight, tankDepth] = tankSize;
       fishRef.current.position.set(
-        (Math.random() - 0.5) * tankWidth * 0.6,
-        (Math.random() - 0.5) * tankHeight * 0.6,
-        (Math.random() - 0.5) * tankDepth * 0.6
+        (Math.random() - 0.5) * tankWidth * 0.5,
+        (Math.random() - 0.5) * tankHeight * 0.5,
+        (Math.random() - 0.5) * tankDepth * 0.5
       );
       
       // Initialize target position
       targetPosition.current.set(
-        (Math.random() - 0.5) * tankWidth * 0.7,
-        (Math.random() - 0.5) * tankHeight * 0.7,
-        (Math.random() - 0.5) * tankDepth * 0.7
+        (Math.random() - 0.5) * tankWidth * 0.6,
+        (Math.random() - 0.5) * tankHeight * 0.6,
+        (Math.random() - 0.5) * tankDepth * 0.6
       );
     }
   }, [tankSize]);
@@ -58,25 +62,26 @@ export function Fish({
     
     // Update target position occasionally
     if (Math.sin(time * 0.2 + fishIndex) > 0.97) {
+      // Use stricter boundaries for target positions
       targetPosition.current.set(
-        (Math.random() - 0.5) * tankWidth * 0.7,
-        (Math.random() - 0.5) * tankHeight * 0.7,
-        (Math.random() - 0.5) * tankDepth * 0.7
+        (Math.random() - 0.5) * tankWidth * 0.5,
+        (Math.random() - 0.5) * tankHeight * 0.5,
+        (Math.random() - 0.5) * tankDepth * 0.5
       );
     }
     
-    // Move toward target with smoothing
-    const moveSpeed = 0.005 * speed * (1 + audioLevel * 0.5);
+    // Move toward target with controlled speed
+    const moveSpeed = 0.005 * speed * speedFactor;
     fish.position.x += (targetPosition.current.x - fish.position.x) * moveSpeed;
     fish.position.y += (targetPosition.current.y - fish.position.y) * moveSpeed;
     fish.position.z += (targetPosition.current.z - fish.position.z) * moveSpeed;
     
-    // Add some random swimming motion
-    fish.position.x += Math.sin(time * 2 + fishIndex) * 0.005;
-    fish.position.y += Math.cos(time * 1.5 + fishIndex) * 0.003;
+    // Add subtle swimming motion, adjusted by speed factor
+    fish.position.x += Math.sin(time * 2 * speedFactor + fishIndex) * 0.003 * speedFactor;
+    fish.position.y += Math.cos(time * 1.5 * speedFactor + fishIndex) * 0.002 * speedFactor;
     
-    // Contain within tank bounds
-    const bounds = 0.9; // Keep away from edges
+    // Enforce strict tank boundaries
+    const bounds = 0.8; // Stricter bounds
     fish.position.x = Math.max(-(tankWidth/2) * bounds, Math.min((tankWidth/2) * bounds, fish.position.x));
     fish.position.y = Math.max(-(tankHeight/2) * bounds, Math.min((tankHeight/2) * bounds, fish.position.y));
     fish.position.z = Math.max(-(tankDepth/2) * bounds, Math.min((tankDepth/2) * bounds, fish.position.z));
@@ -87,11 +92,11 @@ export function Fish({
       fish.lookAt(lookTarget);
       
       // Add slight tilt for realism
-      fish.rotation.z = Math.sin(time * 3 + fishIndex) * 0.2;
+      fish.rotation.z = Math.sin(time * 3 * speedFactor + fishIndex) * 0.2;
     }
     
     // Fish "breathing" animation
-    const breathScale = 1 + Math.sin(time * 5 + fishIndex) * 0.05;
+    const breathScale = 1 + Math.sin(time * 5 * speedFactor + fishIndex) * 0.05;
     fish.scale.set(scale, scale * breathScale, scale);
   });
 

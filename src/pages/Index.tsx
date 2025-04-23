@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { AquariumScene } from '../components/AquariumScene';
 import { VHSOverlay } from '../components/VHSOverlay';
 import { ExploreMenu } from '../components/ExploreMenu';
+import { MenuButton } from '../components/MenuButton';
 import { useAquariumStore } from '../store/aquariumStore';
 
 const Index = () => {
@@ -77,6 +78,7 @@ const Index = () => {
         <>
           <AquariumScene />
           <VHSOverlay />
+          <MenuButton />
           <ExploreMenu isVisible={isMenuOpen} />
           
           {/* Info text */}
@@ -88,7 +90,7 @@ const Index = () => {
           
           {/* Instructions */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-aquarium-white/80 text-center text-xs bg-black/40 px-4 py-2 rounded-full z-10">
-            <p>CLICK TO INTERACT • DRAG CRYSTALS • LONG-PRESS FOR MENU</p>
+            <p>CLICK TO INTERACT • PRESS MENU TO ADJUST SETTINGS</p>
           </div>
         </>
       )}

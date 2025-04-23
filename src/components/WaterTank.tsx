@@ -2,7 +2,6 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useAquariumStore } from '../store/aquariumStore';
 
 interface WaterTankProps {
   size: [number, number, number];
@@ -18,7 +17,6 @@ export function WaterTank({
   useSimpleMaterial = false
 }: WaterTankProps) {
   const [width, height, depth] = size;
-  const toggleMenu = useAquariumStore(state => state.toggleMenu);
   const waterRef = useRef<THREE.Mesh>(null);
   const glassRef = useRef<THREE.Mesh>(null);
   const { gl } = useThree();
@@ -56,15 +54,6 @@ export function WaterTank({
     
     return () => cancelAnimationFrame(handle);
   }, [shouldUseSimpleMaterial]);
-
-  // Basic interaction with safe error handling
-  const handlePointerDown = () => {
-    try {
-      toggleMenu();
-    } catch (error) {
-      console.error("Error in menu toggle:", error);
-    }
-  };
 
   // Material creation with error handling
   const waterMaterial = useMemo(() => {
@@ -159,7 +148,6 @@ export function WaterTank({
       <mesh
         ref={waterRef}
         position={[0, 0, 0]}
-        onPointerDown={handlePointerDown}
       >
         <boxGeometry args={[width * 0.98, height * 0.98, depth * 0.98]} />
         <primitive object={waterMaterial} attach="material" />
