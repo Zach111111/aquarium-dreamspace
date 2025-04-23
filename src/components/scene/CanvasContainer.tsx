@@ -1,9 +1,8 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ErrorBoundary } from '../ErrorBoundary';
-import { LoadingFallback } from '../LoadingFallback';
 import { toast } from "@/components/ui/use-toast";
 
 interface CanvasContainerProps {
@@ -13,19 +12,7 @@ interface CanvasContainerProps {
 
 export function CanvasContainer({ children, onError }: CanvasContainerProps) {
   const [renderFailed, setRenderFailed] = useState(false);
-  const [recovery, setRecovery] = useState(0);
-
-  useEffect(() => {
-    if (renderFailed) {
-      const timer = setTimeout(() => {
-        setRenderFailed(false);
-        setRecovery(prev => prev + 1);
-        console.log("Attempting to recover from render failure...");
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [renderFailed]);
-
+  
   const handleCanvasError = (event: React.SyntheticEvent) => {
     console.error("Canvas render error:", event);
     setRenderFailed(true);
@@ -52,21 +39,25 @@ export function CanvasContainer({ children, onError }: CanvasContainerProps) {
         depth: true,
         failIfMajorPerformanceCaveat: false
       }}
-      dpr={[0.5, 1]} // Lower resolution for better compatibility
+      dpr={0.6} // Much lower resolution for better compatibility
       frameloop="demand" // Only render when needed
-      key={`canvas-${recovery}`} // Force re-creation on recovery
       onCreated={({ gl }) => {
         gl.setClearColor(new THREE.Color('#1A1F2C'));
-        // Disable advanced WebGL features for better compatibility
-        gl.getContextAttributes().powerPreference = 'default';
         console.log("Canvas created successfully");
       }}
       onError={handleCanvasError}
     >
       <ErrorBoundary>
-        <React.Suspense fallback={<LoadingFallback />}>
-          {children}
-        </React.Suspense>
+        {!renderFailed && children}
+        {renderFailed && (
+          <>
+            <ambientLight intensity={0.5} />
+            <mesh position={[0, 0, 0]}>
+              <boxGeometry args={[2, 2, 2]} />
+              <meshBasicMaterial color="#FF0000" wireframe />
+            </mesh>
+          </>
+        )}
       </ErrorBoundary>
     </Canvas>
   );

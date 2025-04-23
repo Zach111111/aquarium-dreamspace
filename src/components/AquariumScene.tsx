@@ -1,47 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CanvasContainer } from './scene/CanvasContainer';
 import { DebugCube } from './scene/DebugCube';
 import { toast } from "@/components/ui/use-toast";
-
-// Import WaterTank for direct use without lazy loading (to avoid TypeScript issues)
-import WaterTank from './WaterTank';
+import { AudioReactiveElements } from './AudioReactiveElements';
 
 export function AquariumScene() {
-  const [showDebugCube, setShowDebugCube] = useState(false);
-  const [renderAttempt, setRenderAttempt] = useState(0);
-  const [useSimpleMode, setUseSimpleMode] = useState(false);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'd' && e.ctrlKey) {
-        setShowDebugCube(prev => !prev);
-        toast({
-          title: showDebugCube ? "Debug Mode Off" : "Debug Mode On",
-          description: showDebugCube ? "Debug cube hidden" : "Debug cube visible"
-        });
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showDebugCube]);
-
-  // Auto-recovery mechanism
-  useEffect(() => {
-    if (renderAttempt > 0) {
-      const timer = setTimeout(() => {
-        console.log("Auto-recovery: forcing scene re-render");
-        setRenderAttempt(0);
-        setUseSimpleMode(true); // Stay in simple mode after errors
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [renderAttempt]);
+  const [showDebugCube, setShowDebugCube] = useState(true); // Show debug cube by default
+  const [useSimpleMode, setUseSimpleMode] = useState(true); // Use simple mode by default
 
   const handleRenderError = () => {
-    console.warn("Render error detected, incrementing render attempt counter");
-    setRenderAttempt(prev => prev + 1);
+    console.warn("Render error detected, using simple mode");
     setUseSimpleMode(true);
 
     toast({
@@ -51,30 +21,45 @@ export function AquariumScene() {
     });
   };
 
-  // Create a memoized lazy-loaded AquariumContent component
-  const LazyAquariumContent = React.lazy(() => import('./scene/AquariumContent'));
+  // Pre-define data for the simple scene
+  const tankSize: [number, number, number] = [8, 5, 8];
+  const fishData = [
+    { scale: 0.8, speed: 1, color: '#88CCFF' },
+    { scale: 0.7, speed: 1.2, color: '#77AADD' },
+    { scale: 0.9, speed: 0.9, color: '#99DDFF' },
+  ];
+  const plantPositions: [number, number, number][] = [
+    [-2, -2, -2],
+    [2, -2, 2],
+    [-2, -2, 2],
+    [2, -2, -2],
+  ];
+  const crystalData = [
+    {
+      position: [0, -1, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+      color: '#88FFFF',
+      height: 1
+    }
+  ];
 
   return (
     <ErrorBoundary>
       <CanvasContainer onError={handleRenderError}>
-        {useSimpleMode ? (
-          // Fallback: simple debug cube scene with water tank
-          <React.Suspense fallback={null}>
-            <ambientLight intensity={0.8} />
-            <pointLight position={[10, 10, 10]} intensity={1.5} />
-            <DebugCube visible={true} />
-            <WaterTank 
-              size={[8, 5, 8]} 
-              useSimpleMaterial={true} 
-            />
-          </React.Suspense>
-        ) : (
-          // Try full aquarium content first
-          <React.Suspense fallback={null}>
-            <LazyAquariumContent key={`content-${renderAttempt}`} />
-            <DebugCube visible={showDebugCube} />
-          </React.Suspense>
-        )}
+        <React.Suspense fallback={null}>
+          <ambientLight intensity={0.8} />
+          <pointLight position={[10, 10, 10]} intensity={1.5} />
+          
+          {showDebugCube && <DebugCube visible={true} />}
+          
+          <AudioReactiveElements
+            mousePosition={null}
+            tankSize={tankSize}
+            fishData={fishData}
+            plantPositions={plantPositions}
+            crystalData={crystalData}
+          />
+        </React.Suspense>
       </CanvasContainer>
     </ErrorBoundary>
   );

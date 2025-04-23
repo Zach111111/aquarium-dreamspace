@@ -13,6 +13,7 @@ import { random } from '../utils/noise';
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
 import { toast } from "@/components/ui/use-toast";
+import { useAudioAnalyzer } from '../hooks/useAudioAnalyzer';
 
 interface AudioReactiveElementsProps {
   mousePosition: THREE.Vector3 | null;
@@ -27,24 +28,24 @@ interface AudioReactiveElementsProps {
   }>;
 }
 
-// Fallback components
+// Simplified fallback components
 const MinimalFish = ({ tankSize, index }: { tankSize: [number, number, number], index: number }) => (
   <mesh position={[(Math.random() - 0.5) * 5, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 5]}>
-    <tetrahedronGeometry args={[0.5, 0]} />
+    <boxGeometry args={[0.5, 0.2, 0.3]} />
     <meshBasicMaterial color={`hsl(${index * 36 + 180}, 70%, ${50 + index * 5}%)`} />
   </mesh>
 );
 
 const MinimalPlant = ({ position }: { position: [number, number, number] }) => (
   <mesh position={position}>
-    <cylinderGeometry args={[0.1, 0.2, 1.5, 4]} />
+    <boxGeometry args={[0.1, 1.0, 0.1]} />
     <meshBasicMaterial color="green" />
   </mesh>
 );
 
 const MinimalCrystal = ({ position }: { position: [number, number, number] }) => (
   <mesh position={position}>
-    <octahedronGeometry args={[0.4, 0]} />
+    <boxGeometry args={[0.4, 0.4, 0.4]} />
     <meshBasicMaterial color="cyan" />
   </mesh>
 );
@@ -56,37 +57,21 @@ export function AudioReactiveElements({
   plantPositions,
   crystalData,
 }: AudioReactiveElementsProps) {
-  const [audioLevels, setAudioLevels] = useState({ bass: 0, mid: 0, treble: 0 });
-  const [audioInitialized, setAudioInitialized] = useState(false);
-  const [audioFailed, setAudioFailed] = useState(false);
-  const [simpleMaterials, setSimpleMaterials] = useState(false);
+  const { audioLevels, isInitialized, initializeAudio } = useAudioAnalyzer();
+  const [simpleMaterials, setSimpleMaterials] = useState(true);
   const [componentStatus, setComponentStatus] = useState({
     fish: true,
     plants: true,
     crystals: true,
-    particles: true,
-    postprocessing: true
+    particles: false,
+    postprocessing: false
   });
 
   // Initialize audio on user interaction
   useEffect(() => {
     const initAudio = () => {
-      if (audioInitialized || audioFailed) return;
-      
-      try {
-        audioManager.initialize('/audio/main_theme.wav');
-        audioManager.play();
-        audioManager.setVolume(0.5); // Default volume
-        setAudioInitialized(true);
-        console.log("✅ Audio initialized successfully");
-      } catch (error) {
-        console.error('Failed to initialize audio:', error);
-        setAudioFailed(true);
-        toast({
-          title: "Audio Error",
-          description: "Failed to initialize audio. Some features may be limited.",
-          variant: "destructive"
-        });
+      if (!isInitialized) {
+        initializeAudio();
       }
     };
     
@@ -104,21 +89,8 @@ export function AudioReactiveElements({
       window.removeEventListener('click', handleInteraction);
       window.removeEventListener('keydown', handleInteraction);
     };
-  }, [audioInitialized, audioFailed]);
+  }, [isInitialized, initializeAudio]);
 
-  // Safely get audio levels
-  useFrame(() => {
-    if (!audioInitialized || audioFailed) return;
-    
-    try {
-      const levels = audioManager.getAudioLevels();
-      setAudioLevels(levels);
-    } catch (error) {
-      // Silent fail with default values
-      setAudioLevels({ bass: 0, mid: 0, treble: 0 });
-    }
-  });
-  
   // Check for low performance and toggle simple materials
   useEffect(() => {
     let frameCount = 0;
@@ -140,9 +112,6 @@ export function AudioReactiveElements({
             title: "Performance Mode Enabled",
             description: "Switched to simpler materials for better performance.",
           });
-        } else if (fps > 50 && simpleMaterials) {
-          console.log('Performance improved, using advanced materials');
-          setSimpleMaterials(false);
         }
       }
       
@@ -153,100 +122,27 @@ export function AudioReactiveElements({
     return () => cancelAnimationFrame(handle);
   }, [simpleMaterials]);
 
-  // Component error handlers
-  const handleComponentError = (component: keyof typeof componentStatus) => {
-    setComponentStatus(prev => ({ ...prev, [component]: false }));
-    console.error(`${component} component failed to render`);
-    
-    // Try to recover after a delay
-    setTimeout(() => {
-      setComponentStatus(prev => ({ ...prev, [component]: true }));
-    }, 5000);
-  };
-
   return (
     <WaterTank size={tankSize} audioLevel={audioLevels.bass} useSimpleMaterial={simpleMaterials}>
       {/* Fish with error boundaries */}
       <ErrorBoundary>
-        <Suspense fallback={<LoadingFallback />}>
-          {componentStatus.fish && fishData.map((fish, i) => (
-            <ErrorBoundary key={`fish-boundary-${i}`}>
-              <Suspense fallback={<MinimalFish tankSize={tankSize} index={i} />}>
-                <Fish
-                  key={`fish-${i}`}
-                  color={fish.color}
-                  scale={fish.scale}
-                  speed={fish.speed}
-                  tankSize={tankSize}
-                  index={i}
-                  audioLevel={audioLevels.mid}
-                />
-              </Suspense>
-            </ErrorBoundary>
-          ))}
-        </Suspense>
+        {componentStatus.fish && fishData.map((fish, i) => (
+          <MinimalFish key={`fish-${i}`} tankSize={tankSize} index={i} />
+        ))}
       </ErrorBoundary>
       
       {/* Plants with error boundaries */}
       <ErrorBoundary>
-        <Suspense fallback={<LoadingFallback />}>
-          {componentStatus.plants && plantPositions.map((position, i) => (
-            <ErrorBoundary key={`plant-boundary-${i}`}>
-              <Suspense fallback={<MinimalPlant position={position} />}>
-                <Plant
-                  key={`plant-${i}`}
-                  position={position}
-                  height={1.5 + Math.random() * 1.5}
-                  color={`hsl(${120 + Math.random() * 40}, 70%, 60%)`}
-                  audioLevel={audioLevels.treble}
-                />
-              </Suspense>
-            </ErrorBoundary>
-          ))}
-        </Suspense>
+        {componentStatus.plants && plantPositions.map((position, i) => (
+          <MinimalPlant key={`plant-${i}`} position={position} />
+        ))}
       </ErrorBoundary>
       
       {/* Crystals with error boundaries */}
       <ErrorBoundary>
-        <Suspense fallback={<LoadingFallback />}>
-          {componentStatus.crystals && crystalData.map((crystal, i) => (
-            <ErrorBoundary key={`crystal-boundary-${i}`}>
-              <Suspense fallback={<MinimalCrystal position={crystal.position} />}>
-                <Crystal
-                  key={`crystal-${i}`}
-                  position={crystal.position}
-                  rotation={crystal.rotation}
-                  color={crystal.color}
-                  height={crystal.height}
-                  audioLevel={audioLevels.treble}
-                />
-              </Suspense>
-            </ErrorBoundary>
-          ))}
-        </Suspense>
-      </ErrorBoundary>
-      
-      {/* Particles with error boundary */}
-      <ErrorBoundary>
-        <Suspense fallback={null}>
-          {componentStatus.particles && (
-            <Particles
-              count={simpleMaterials ? 30 : 50}
-              tankSize={tankSize}
-              mousePosition={mousePosition}
-              audioLevel={audioLevels.bass}
-            />
-          )}
-        </Suspense>
-      </ErrorBoundary>
-      
-      {/* Post-processing with error boundary */}
-      <ErrorBoundary>
-        <Suspense fallback={null}>
-          {componentStatus.postprocessing && (
-            <PostProcessing audioLevel={audioLevels.mid} />
-          )}
-        </Suspense>
+        {componentStatus.crystals && crystalData.map((crystal, i) => (
+          <MinimalCrystal key={`crystal-${i}`} position={crystal.position} />
+        ))}
       </ErrorBoundary>
     </WaterTank>
   );
