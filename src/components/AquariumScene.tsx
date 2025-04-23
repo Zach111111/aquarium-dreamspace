@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 import { Lighting } from './Lighting';
@@ -81,11 +81,11 @@ const AquariumContent = () => {
   }, [tankSize]);
 
   // This is now safe to use inside the Canvas
-  const { raycaster, camera, mouse } = React.useThree();
+  const { raycaster, camera, mouse } = useThree();
   const planeXZ = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
   const intersectionPoint = useMemo(() => new THREE.Vector3(), []);
   
-  React.useFrame(() => {
+  useFrame(() => {
     try {
       // Mouse tracking
       raycaster.setFromCamera(mouse, camera);
