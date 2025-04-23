@@ -4,7 +4,6 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 import { Lighting } from './Lighting';
-import { AudioReactiveElements } from './AudioReactiveElements';
 import { LoadingFallback } from './LoadingFallback';
 import { ErrorBoundary } from './ErrorBoundary';
 import { WaterTank } from './WaterTank';
@@ -95,11 +94,13 @@ const AquariumContent = () => {
         setMousePosition(null);
       }
       
-      // Fish position tracking
-      if (fishRefs.current.length > 0) {
-        setFishWorldPositions(
-          fishRefs.current.map(mesh => (mesh ? mesh.position.clone() : new THREE.Vector3()))
-        );
+      // Fish position tracking - avoid accessing when refs aren't initialized
+      if (fishRefs.current && fishRefs.current.length > 0) {
+        const positions = fishRefs.current
+          .map(mesh => (mesh ? mesh.position.clone() : null))
+          .filter((pos): pos is THREE.Vector3 => pos !== null);
+        
+        setFishWorldPositions(positions);
       }
     } catch (error) {
       console.error("Frame update error:", error);
@@ -123,8 +124,6 @@ const AquariumContent = () => {
         <Lighting />
       </ErrorBoundary>
       
-      {/* Debug cube would go here */}
-
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
           <WaterTank size={tankSize} audioLevel={0}>
