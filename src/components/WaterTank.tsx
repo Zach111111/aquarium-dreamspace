@@ -17,6 +17,7 @@ const WaterShaderMaterial = shaderMaterial(
   `
     varying vec2 vUv;
     varying vec3 vPosition;
+    uniform float time;
     
     void main() {
       vUv = uv;
@@ -58,7 +59,7 @@ const WaterShaderMaterial = shaderMaterial(
   `
 );
 
-// Add material properties that are needed for our shader material
+// Add material properties explicitly
 WaterShaderMaterial.prototype.transparent = true;
 WaterShaderMaterial.prototype.side = THREE.DoubleSide;
 
@@ -69,11 +70,7 @@ extend({ WaterShaderMaterial });
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      waterShaderMaterial: JSX.IntrinsicElements['shaderMaterial'] & {
-        time?: number;
-        color?: THREE.Color;
-        opacity?: number;
-      };
+      waterShaderMaterial: any;
     }
   }
 }
@@ -95,9 +92,7 @@ export function WaterTank({
   const toggleMenu = useAquariumStore(state => state.toggleMenu);
   const waterRef = useRef<THREE.Mesh>(null);
   const glassRef = useRef<THREE.Mesh>(null);
-  
-  // Fix: Change the type to any or THREE.ShaderMaterial instead of ShaderMaterial
-  const waterShaderRef = useRef<any>(null);
+  const waterMaterialRef = useRef<any>(null);
   
   // Material fallback state
   const [shouldUseSimpleMaterial, setShouldUseSimpleMaterial] = useState(useSimpleMaterial);
@@ -145,8 +140,8 @@ export function WaterTank({
   // Update shader uniforms on each frame
   useFrame(({ clock }) => {
     // Update shader time uniform
-    if (waterShaderRef.current && waterShaderRef.current.uniforms) {
-      waterShaderRef.current.uniforms.time.value = clock.getElapsedTime();
+    if (waterMaterialRef.current && waterMaterialRef.current.uniforms) {
+      waterMaterialRef.current.uniforms.time.value = clock.getElapsedTime();
     }
     
     if (!waterRef.current) return;
@@ -219,10 +214,9 @@ export function WaterTank({
           />
         ) : (
           <waterShaderMaterial 
-            ref={waterShaderRef}
-            time={0}
-            color={new THREE.Color('#66ccff')}
-            opacity={0.6}
+            ref={waterMaterialRef}
+            key="water-shader"
+            attach="material"
           />
         )}
       </mesh>
