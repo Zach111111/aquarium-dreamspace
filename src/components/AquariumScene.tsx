@@ -1,5 +1,6 @@
-import React, { useMemo, useRef, useState, useEffect, Suspense } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
+
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 
 import { Lighting } from './Lighting';
@@ -13,94 +14,19 @@ import { Kelp } from './Kelp';
 import { Crystal } from './Crystal';
 import { Particles } from './Particles';
 import { PostProcessing } from './PostProcessing';
-
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import { useAquariumStore } from '../store/aquariumStore';
-import { audioManager } from '../utils/audio';
 import { random } from '../utils/noise';
 import { toast } from "@/components/ui/use-toast";
 
-const FallbackFish = () => (
-  <mesh>
-    <boxGeometry args={[0.5, 0.3, 0.7]} />
-    <meshBasicMaterial color="hotpink" />
-  </mesh>
-);
-
-const FallbackPlant = () => (
-  <mesh position={[0, 1, 0]}>
-    <cylinderGeometry args={[0.1, 0.1, 1.5, 4]} />
-    <meshBasicMaterial color="green" />
-  </mesh>
-);
-
-const FallbackCrystal = () => (
-  <mesh>
-    <octahedronGeometry args={[0.4, 0]} />
-    <meshBasicMaterial color="cyan" />
-  </mesh>
-);
-
-function MouseTracker({ setMousePosition }: { setMousePosition: (position: THREE.Vector3 | null) => void }) {
-  const { camera, mouse, raycaster, scene } = useThree();
-  const planeXZ = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
-  const intersectionPoint = useMemo(() => new THREE.Vector3(), []);
-  
-  useFrame(() => {
-    try {
-      raycaster.setFromCamera(mouse, camera);
-      
-      if (raycaster.ray.intersectPlane(planeXZ, intersectionPoint)) {
-        setMousePosition(intersectionPoint.clone());
-      } else {
-        setMousePosition(null);
-      }
-    } catch (error) {
-      console.error("MouseTracker error:", error);
-      setMousePosition(null);
-    }
-  });
-  
-  useEffect(() => {
-    const canvas = document.querySelector('canvas');
-    if (!canvas) return;
-    
-    const handleContextLost = (event: Event) => {
-      event.preventDefault();
-      console.error('WebGL context lost');
-      toast({
-        title: "Graphics Error",
-        description: "WebGL context lost. Try refreshing the page.",
-        variant: "destructive"
-      });
-      setMousePosition(null);
-    };
-    
-    canvas.addEventListener('webglcontextlost', handleContextLost);
-    return () => canvas.removeEventListener('webglcontextlost', handleContextLost);
-  }, []);
-  
-  return null;
-}
-
-function DebugCube({ visible = false }) {
-  if (!visible) return null;
-  
-  return (
-    <mesh position={[0, 0, 0]}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshBasicMaterial color="hotpink" wireframe />
-    </mesh>
-  );
-}
-
-export function AquariumScene() {
+// Move the scene content to a separate component that will be inside the Canvas
+const AquariumContent = () => {
   const [mousePosition, setMousePosition] = useState<THREE.Vector3 | null>(null);
   const tankSize: [number, number, number] = [10, 6, 10];
   const orbitSpeed = useAquariumStore(state => state.orbitSpeed);
-  const [showDebugCube, setShowDebugCube] = useState(false);
-  const [renderFailed, setRenderFailed] = useState(false);
-
+  const [fishWorldPositions, setFishWorldPositions] = useState<THREE.Vector3[]>([]);
+  const fishRefs = React.useRef<(THREE.Mesh | null)[]>([]);
+  
   const fishData = useMemo(() => {
     return Array.from({ length: 7 }, (_, index) => ({
       scale: 0.7 + Math.random() * 0.5,
@@ -154,19 +80,106 @@ export function AquariumScene() {
     return crystals;
   }, [tankSize]);
 
-  const [fishWorldPositions, setFishWorldPositions] = useState<THREE.Vector3[]>([]);
-  useEffect(() => {
-    setFishWorldPositions(Array(fishData.length).fill(new THREE.Vector3()));
-  }, [fishData.length]);
-  const fishRefs = useRef<(THREE.Mesh | null)[]>([]);
-
-  useFrame(() => {
-    if (fishRefs.current.length > 0) {
-      setFishWorldPositions(
-        fishRefs.current.map(mesh => (mesh ? mesh.position.clone() : new THREE.Vector3()))
-      );
+  // This is now safe to use inside the Canvas
+  const { raycaster, camera, mouse } = React.useThree();
+  const planeXZ = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
+  const intersectionPoint = useMemo(() => new THREE.Vector3(), []);
+  
+  React.useFrame(() => {
+    try {
+      // Mouse tracking
+      raycaster.setFromCamera(mouse, camera);
+      if (raycaster.ray.intersectPlane(planeXZ, intersectionPoint)) {
+        setMousePosition(intersectionPoint.clone());
+      } else {
+        setMousePosition(null);
+      }
+      
+      // Fish position tracking
+      if (fishRefs.current.length > 0) {
+        setFishWorldPositions(
+          fishRefs.current.map(mesh => (mesh ? mesh.position.clone() : new THREE.Vector3()))
+        );
+      }
+    } catch (error) {
+      console.error("Frame update error:", error);
+      setMousePosition(null);
     }
   });
+
+  return (
+    <>
+      <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
+      <OrbitControls 
+        enableZoom={true} 
+        enablePan={false} 
+        autoRotate={orbitSpeed > 0} 
+        autoRotateSpeed={orbitSpeed * 2}
+        maxDistance={20}
+        minDistance={8}
+      />
+
+      <ErrorBoundary>
+        <Lighting />
+      </ErrorBoundary>
+      
+      {/* Debug cube would go here */}
+
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>
+          <WaterTank size={tankSize} audioLevel={0}>
+            {fishData.map((fish, i) => (
+              <Fish
+                key={i}
+                color={fish.color}
+                scale={fish.scale}
+                speed={fish.speed}
+                tankSize={tankSize}
+                index={i}
+                audioLevel={0}
+                allFishPositions={fishWorldPositions}
+                ref={el => { fishRefs.current[i] = el; }}
+              />
+            ))}
+            {plantPositions.map((pos, i) => (
+              <Plant key={i} position={pos} />
+            ))}
+            {kelpPositions.map((pos, i) => (
+              <Kelp key={i} position={pos} height={2.6 + Math.random()*1.7} />
+            ))}
+            {crystalData.map((crystal, i) => (
+              <Crystal key={i} {...crystal} />
+            ))}
+          </WaterTank>
+          <Particles
+            tankSize={tankSize}
+            mousePosition={mousePosition}
+            count={42}
+            audioLevel={0}
+          />
+          <PostProcessing audioLevel={0} />
+        </Suspense>
+      </ErrorBoundary>
+    </>
+  );
+};
+
+// DebugCube separate component
+const DebugCube = ({ visible = false }) => {
+  if (!visible) return null;
+  
+  return (
+    <mesh position={[0, 0, 0]}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshBasicMaterial color="hotpink" wireframe />
+    </mesh>
+  );
+};
+
+// Main wrapper component
+export function AquariumScene() {
+  const [showDebugCube, setShowDebugCube] = useState(false);
+  const [renderFailed, setRenderFailed] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -222,57 +235,8 @@ export function AquariumScene() {
         onError={handleCanvasError}
       >
         <React.Suspense fallback={<LoadingFallback />}>
-          <MouseTracker setMousePosition={setMousePosition} />
-          <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
-          <OrbitControls 
-            enableZoom={true} 
-            enablePan={false} 
-            autoRotate={orbitSpeed > 0} 
-            autoRotateSpeed={orbitSpeed * 2}
-            maxDistance={20}
-            minDistance={8}
-          />
-
-          <ErrorBoundary>
-            <Lighting />
-          </ErrorBoundary>
-          <DebugCube visible={showDebugCube} />
-
-          <ErrorBoundary>
-            <React.Suspense fallback={<LoadingFallback />}>
-              <WaterTank size={tankSize} audioLevel={0}>
-                {fishData.map((fish, i) => (
-                  <Fish
-                    key={i}
-                    color={fish.color}
-                    scale={fish.scale}
-                    speed={fish.speed}
-                    tankSize={tankSize}
-                    index={i}
-                    audioLevel={0}
-                    allFishPositions={fishWorldPositions}
-                    ref={el => (fishRefs.current[i] = el)}
-                  />
-                ))}
-                {plantPositions.map((pos, i) => (
-                  <Plant key={i} position={pos} />
-                ))}
-                {kelpPositions.map((pos, i) => (
-                  <Kelp key={i} position={pos} height={2.6 + Math.random()*1.7} />
-                ))}
-                {crystalData.map((crystal, i) => (
-                  <Crystal key={i} {...crystal} />
-                ))}
-              </WaterTank>
-              <Particles
-                tankSize={tankSize}
-                mousePosition={mousePosition}
-                count={42}
-                audioLevel={0}
-              />
-              <PostProcessing audioLevel={0} />
-            </React.Suspense>
-          </ErrorBoundary>
+          <AquariumContent />
+          {showDebugCube && <DebugCube visible={true} />}
         </React.Suspense>
       </Canvas>
     </ErrorBoundary>
