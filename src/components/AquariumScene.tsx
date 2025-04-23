@@ -184,8 +184,8 @@ export function AquariumScene() {
     }
   }, [renderFailed]);
 
-  // Custom error handler for the canvas
-  const handleCanvasError = (event: React.SyntheticEvent<HTMLCanvasElement, Event>) => {
+  // Custom error handler for the canvas - fixed type signature
+  const handleCanvasError = (event: React.SyntheticEvent) => {
     console.error("Canvas render error:", event);
     setRenderFailed(true);
     toast({
