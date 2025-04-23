@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { WaterTank } from './WaterTank';
@@ -7,8 +7,7 @@ import { Fish } from './Fish';
 import { Plant } from './Plant';
 import { Crystal } from './Crystal';
 import { Particles } from './Particles';
-// Import PostProcessing but we won't use it yet
-// import { PostProcessing } from './PostProcessing';
+import { PostProcessing } from './PostProcessing';
 import { audioManager } from '../utils/audio';
 import { random } from '../utils/noise';
 
@@ -33,28 +32,87 @@ export function AudioReactiveElements({
   crystalData,
 }: AudioReactiveElementsProps) {
   const [audioLevels, setAudioLevels] = useState({ bass: 0, mid: 0, treble: 0 });
+  const [audioInitialized, setAudioInitialized] = useState(false);
+  const [simpleMaterials, setSimpleMaterials] = useState(false);
 
-  // Safely get audio levels but with minimal processing
+  // Initialize audio on user interaction
+  useEffect(() => {
+    const initAudio = () => {
+      if (audioInitialized) return;
+      
+      try {
+        audioManager.initialize('/audio/main_theme.wav');
+        audioManager.play();
+        audioManager.setVolume(0.5); // Default volume
+        setAudioInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize audio:', error);
+      }
+    };
+    
+    // Add one-time event listeners for user interaction
+    const handleInteraction = () => {
+      initAudio();
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+    
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
+    
+    return () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+  }, [audioInitialized]);
+
+  // Safely get audio levels
   useFrame(() => {
+    if (!audioInitialized) return;
+    
     try {
       const levels = audioManager.getAudioLevels();
       setAudioLevels(levels);
     } catch (error) {
-      // Silent catch - default to zero levels
+      // Silent fail with default values
       setAudioLevels({ bass: 0, mid: 0, treble: 0 });
     }
   });
+  
+  // Check for low performance and toggle simple materials
+  useEffect(() => {
+    let frameCount = 0;
+    let lastTime = performance.now();
+    
+    const checkPerformance = () => {
+      frameCount++;
+      const now = performance.now();
+      
+      if (now - lastTime >= 1000) {
+        const fps = frameCount;
+        frameCount = 0;
+        lastTime = now;
+        
+        if (fps < 30 && !simpleMaterials) {
+          console.log('Low FPS detected, switching to simple materials');
+          setSimpleMaterials(true);
+        } else if (fps > 50 && simpleMaterials) {
+          console.log('Performance improved, using advanced materials');
+          setSimpleMaterials(false);
+        }
+      }
+      
+      requestAnimationFrame(checkPerformance);
+    };
+    
+    const handle = requestAnimationFrame(checkPerformance);
+    return () => cancelAnimationFrame(handle);
+  }, [simpleMaterials]);
 
   return (
-    <WaterTank size={tankSize} audioLevel={0}>
-      {/* Debug cube to confirm rendering works */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="hotpink" />
-      </mesh>
-
-      {/* Just one fish for testing */}
-      {fishData.slice(0, 1).map((fish, i) => (
+    <WaterTank size={tankSize} audioLevel={audioLevels.bass} useSimpleMaterial={simpleMaterials}>
+      {/* All fish */}
+      {fishData.map((fish, i) => (
         <Fish
           key={`fish-${i}`}
           color={fish.color}
@@ -62,23 +120,43 @@ export function AudioReactiveElements({
           speed={fish.speed}
           tankSize={tankSize}
           index={i}
-          audioLevel={0}
+          audioLevel={audioLevels.mid}
         />
       ))}
-
-      {/* No plants for now */}
       
-      {/* No crystals for now */}
+      {/* Plants */}
+      {plantPositions.map((position, i) => (
+        <Plant
+          key={`plant-${i}`}
+          position={position}
+          height={1.5 + Math.random() * 1.5}
+          color={`hsl(${120 + Math.random() * 40}, 70%, 60%)`}
+          audioLevel={audioLevels.treble}
+        />
+      ))}
       
-      {/* Minimal particles */}
+      {/* Crystals */}
+      {crystalData.map((crystal, i) => (
+        <Crystal
+          key={`crystal-${i}`}
+          position={crystal.position}
+          rotation={crystal.rotation}
+          color={crystal.color}
+          height={crystal.height}
+          audioLevel={audioLevels.treble}
+        />
+      ))}
+      
+      {/* Particles */}
       <Particles
-        count={5}
+        count={50} // Reduced count for better performance
         tankSize={tankSize}
-        mousePosition={null}
-        audioLevel={0}
+        mousePosition={mousePosition}
+        audioLevel={audioLevels.bass}
       />
       
-      {/* No post-processing yet */}
+      {/* Post-processing */}
+      <PostProcessing audioLevel={audioLevels.mid} />
     </WaterTank>
   );
 }
