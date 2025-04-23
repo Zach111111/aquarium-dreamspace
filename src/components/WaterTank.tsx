@@ -1,4 +1,3 @@
-
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -15,7 +14,6 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
   const toggleMenu = useAquariumStore(state => state.toggleMenu);
   const waterRef = useRef<THREE.Mesh>(null);
 
-  // Handle long press for menu activation
   const pressTimer = useRef<NodeJS.Timeout | null>(null);
   const isPressing = useRef(false);
 
@@ -25,7 +23,7 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
       if (isPressing.current) {
         toggleMenu();
       }
-    }, 800); // 800ms for long press
+    }, 800);
   };
 
   const handlePointerUp = () => {
@@ -40,7 +38,6 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     
     const time = clock.getElapsedTime();
     
-    // Subtle water movement
     if (waterRef.current.material instanceof THREE.ShaderMaterial) {
       waterRef.current.material.uniforms.uTime.value = time;
       waterRef.current.material.uniforms.uAudioLevel.value = audioLevel;
@@ -70,42 +67,37 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
       varying vec2 vUv;
       varying vec3 vPosition;
       
-      // Simple noise function
       float noise(vec2 p) {
         return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
       }
       
       void main() {
-        // Caustics effect
         float causticIntensity = 0.03 * (1.0 + uAudioLevel * 2.0);
         vec2 causticUv = vUv * 10.0 + uTime * 0.1;
         float caustic = noise(causticUv) * causticIntensity;
         
-        // Water color with caustics and depth
         vec3 waterColor = uColor + vec3(caustic);
         
-        // Add depth effect - darker at the bottom
-        float depthFactor = (vPosition.y + 0.5) * 0.5; // normalize to 0-1
+        float depthFactor = (vPosition.y + 0.5) * 0.5;
         waterColor = mix(waterColor * 0.7, waterColor, depthFactor);
         
-        // Add subtle waves on the top surface
         if (vPosition.y > 0.48) {
-          float wave = sin(vUv.x * 20.0 + uTime) * sin(vUv.z * 20.0 + uTime) * 0.05;
+          float wave = sin(vUv.x * 20.0 + uTime)
+                     * sin(vUv.y * 20.0 + uTime)
+                     * 0.05;
           waterColor += vec3(wave);
         }
         
-        gl_FragColor = vec4(waterColor, 0.6); // Semi-transparent water
+        gl_FragColor = vec4(waterColor, 0.6);
       }
     `,
   };
 
-  // Calculate inset walls to prevent z-fighting (reduce thickness by 0.25)
-  const wallThickness = 0.25; // Reduced from 0.5
-  const insetFactor = 0.125; // Inset walls by 0.125 units
+  const wallThickness = 0.25;
+  const insetFactor = 0.125;
 
   return (
     <group>
-      {/* Water volume */}
       <mesh 
         ref={waterRef} 
         position={[0, 0, 0]}
@@ -121,7 +113,6 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
         />
       </mesh>
       
-      {/* Tank glass walls - now with BackSide rendering and reduced thickness */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[width + wallThickness, height + wallThickness, depth + wallThickness]} />
         <meshPhysicalMaterial
@@ -131,12 +122,11 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
           roughness={0.05}
           metalness={0.0}
           transmission={0.9}
-          thickness={0.25} // Reduced thickness
-          side={THREE.BackSide} // BackSide rendering for proper viewing from inside
+          thickness={0.25}
+          side={THREE.BackSide}
         />
       </mesh>
       
-      {/* Tank contents */}
       <group position={[0, 0, 0]}>
         {children}
       </group>
