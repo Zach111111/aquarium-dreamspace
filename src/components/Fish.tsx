@@ -1,6 +1,7 @@
 
 import { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 import { Group, Vector3, MathUtils } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
 import { toast } from "@/components/ui/use-toast";
@@ -124,7 +125,7 @@ export function Fish({
     }
   });
 
-  const handlePointerDown = (e) => {
+  const handlePointerDown = (e: THREE.Event) => {
     // Stop event propagation to prevent it from reaching objects behind
     e.stopPropagation();
     
