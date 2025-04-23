@@ -1,5 +1,5 @@
 
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -20,25 +20,29 @@ export function WaterTank({
   const waterRef = useRef<THREE.Mesh>(null);
   const glassRef = useRef<THREE.Mesh>(null);
   
-  // Always use simple materials to avoid errors
-  const [shouldUseSimpleMaterial, setShouldUseSimpleMaterial] = useState(true);
-  
-  // Create simple materials that won't cause property access issues
+  // Create optimized materials that won't cause property access issues
   const waterMaterial = useMemo(() => {
-    return new THREE.MeshBasicMaterial({
+    return new THREE.MeshStandardMaterial({
       color: "#66ccff",
       transparent: true,
       opacity: 0.2,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
+      depthWrite: false, // Prevents z-fighting with contents
+      roughness: 0.2,
+      metalness: 0.1
     });
   }, []);
 
   const glassMaterial = useMemo(() => {
-    return new THREE.MeshBasicMaterial({
+    return new THREE.MeshStandardMaterial({
       color: "#F6F7FF",
       transparent: true,
-      opacity: 0.2,
-      side: THREE.BackSide
+      opacity: 0.15,
+      side: THREE.BackSide,
+      depthWrite: true, // Enable depth writing for glass
+      roughness: 0.05,
+      metalness: 0.9,
+      envMapIntensity: 1.5
     });
   }, []);
 
@@ -46,9 +50,9 @@ export function WaterTank({
     if (!waterRef.current) return;
     
     try {
-      // Simple water animation
+      // Subtle water animation
       const time = clock.getElapsedTime();
-      waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.05;
+      waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.02;
     } catch (error) {
       console.error("Water animation error:", error);
     }
@@ -65,12 +69,7 @@ export function WaterTank({
         position={[0, 0, 0]}
       >
         <boxGeometry args={[width * 0.98, height * 0.98, depth * 0.98]} />
-        <meshBasicMaterial
-          color="#66ccff"
-          transparent
-          opacity={0.2}
-          side={THREE.DoubleSide}
-        />
+        <primitive object={waterMaterial} />
       </mesh>
       
       {/* Glass walls */}
@@ -85,12 +84,7 @@ export function WaterTank({
             depth + wallThickness,
           ]}
         />
-        <meshBasicMaterial
-          color="#F6F7FF"
-          transparent
-          opacity={0.2}
-          side={THREE.BackSide}
-        />
+        <primitive object={glassMaterial} />
       </mesh>
       
       {/* Tank contents */}
