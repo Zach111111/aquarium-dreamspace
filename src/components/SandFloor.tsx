@@ -42,7 +42,7 @@ export function SandFloor({ width, depth, resolution = 32 }: SandFloorProps) {
       geometry={geometry} 
       material={material}
       rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, -height/2, 0]}
+      position={[0, -3, 0]}
       receiveShadow
     />
   );
