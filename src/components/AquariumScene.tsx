@@ -1,11 +1,9 @@
-
 import React, { useMemo, useRef, useState, useEffect, Suspense } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 import { Lighting } from './Lighting';
 import { AudioReactiveElements } from './AudioReactiveElements';
-// import { ErrorBoundary } from './ErrorBoundary'; // ErrorBoundary intentionally removed for production scene
 import { LoadingFallback } from './LoadingFallback';
 
 import { PerspectiveCamera, Stats } from '@react-three/drei';
@@ -171,7 +169,7 @@ export function AquariumScene() {
       }}
     >
       <Suspense fallback={<LoadingFallback />}>
-        {/* Debug cube to verify rendering works */}
+        {/* Debug cube to verify rendering works - keeping this for now */}
         <mesh position={[0, 0, 0]}>
           <boxGeometry args={[1, 1, 1]} />
           <meshBasicMaterial color="hotpink" />
@@ -182,7 +180,7 @@ export function AquariumScene() {
         <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
         <Lighting />
 
-        {/* Main Dreamspace aquarium scene below */}
+        {/* Main Dreamspace aquarium scene */}
         <AudioReactiveElements
           mousePosition={mousePosition}
           tankSize={tankSize}

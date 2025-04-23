@@ -41,7 +41,7 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.05;
   });
 
-  // Fallback to simple material for stability
+  // force simple material for stability
   const useSimpleMaterial = true;
 
   // thickness for the glass walls

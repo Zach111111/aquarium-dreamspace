@@ -33,15 +33,22 @@ export function AudioReactiveElements({
 }: AudioReactiveElementsProps) {
   const [audioLevels, setAudioLevels] = useState({ bass: 0, mid: 0, treble: 0 });
 
+  // Reduced update frequency to improve performance
   useFrame(() => {
-    const levels = audioManager.getAudioLevels();
-    setAudioLevels(levels);
+    try {
+      const levels = audioManager.getAudioLevels();
+      setAudioLevels(levels);
+    } catch (error) {
+      console.error("Audio levels error:", error);
+      // Default to zero if there's an error
+      setAudioLevels({ bass: 0, mid: 0, treble: 0 });
+    }
   });
 
   return (
     <WaterTank size={tankSize} audioLevel={audioLevels.bass}>
-      {/* Generate fish */}
-      {fishData.map((fish, i) => (
+      {/* Generate fish - limit to fewer fish for now */}
+      {fishData.slice(0, 4).map((fish, i) => (
         <Fish
           key={`fish-${i}`}
           color={fish.color}
@@ -53,8 +60,8 @@ export function AudioReactiveElements({
         />
       ))}
 
-      {/* Generate plants */}
-      {plantPositions.map((position, i) => (
+      {/* Generate plants - limit to fewer plants for now */}
+      {plantPositions.slice(0, 2).map((position, i) => (
         <Plant
           key={`plant-${i}`}
           position={position}
@@ -65,8 +72,8 @@ export function AudioReactiveElements({
         />
       ))}
 
-      {/* Generate crystals */}
-      {crystalData.map((crystal, i) => (
+      {/* Generate crystals - limit to fewer crystals for now */}
+      {crystalData.slice(0, 1).map((crystal, i) => (
         <Crystal
           key={`crystal-${i}`}
           position={crystal.position}
@@ -78,15 +85,15 @@ export function AudioReactiveElements({
         />
       ))}
 
-      {/* Particles */}
+      {/* Particles - reduce count for now */}
       <Particles
-        count={150}
+        count={50}
         tankSize={tankSize}
         mousePosition={mousePosition}
         audioLevel={audioLevels.bass}
       />
 
-      {/* Post-processing effects */}
+      {/* Disabled post-processing for now */}
       <PostProcessing audioLevel={audioLevels.bass} />
     </WaterTank>
   );
