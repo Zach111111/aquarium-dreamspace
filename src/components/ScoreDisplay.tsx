@@ -6,7 +6,7 @@ export function ScoreDisplay() {
   const highScore = useAquariumStore(state => state.highScore);
 
   return (
-    <div className="absolute top-16 right-5 text-aquarium-white z-10 bg-black/30 px-4 py-2 rounded-lg">
+    <div className="absolute top-16 right-5 text-aquarium-white z-20 bg-black/30 px-4 py-2 rounded-lg">
       <div className="text-sm font-mono">
         <div>SCORE: {score}</div>
         <div className="text-aquarium-blue">HIGH: {highScore}</div>

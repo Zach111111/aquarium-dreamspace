@@ -1,3 +1,4 @@
+
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
 import { Suspense } from 'react';
@@ -64,71 +65,74 @@ export function AquariumScene() {
 
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LoadingFallback />}>
-        <Canvas 
-          className="w-full h-full"
-          style={{ background: '#0a1a26' }}
-          gl={{ 
-            antialias: true,
-            powerPreference: 'default',
-            alpha: false,
-            stencil: false,
-            depth: true,
-          }}
-          dpr={[1, 1.5]}
-          onError={handleCanvasError}
-        >
-          <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
-          <OrbitControls 
-            enableZoom={true} 
-            enablePan={false} 
-            autoRotate={orbitSpeed > 0} 
-            autoRotateSpeed={orbitSpeed * 2}
-            maxDistance={20}
-            minDistance={8}
-          />
+      <div className="relative w-full h-full">
+        <Suspense fallback={<LoadingFallback />}>
+          <Canvas 
+            className="w-full h-full"
+            style={{ background: '#0a1a26' }}
+            gl={{ 
+              antialias: true,
+              powerPreference: 'default',
+              alpha: false,
+              stencil: false,
+              depth: true,
+            }}
+            dpr={[1, 1.5]}
+            onError={handleCanvasError}
+          >
+            <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
+            <OrbitControls 
+              enableZoom={true} 
+              enablePan={false} 
+              autoRotate={orbitSpeed > 0} 
+              autoRotateSpeed={orbitSpeed * 2}
+              maxDistance={20}
+              minDistance={8}
+            />
 
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[5, 5, 5]} intensity={0.8} castShadow />
-          <hemisphereLight args={['#F6F7FF', '#A5F3FF', 0.6]} />
+            <ambientLight intensity={0.6} />
+            <directionalLight position={[5, 5, 5]} intensity={0.8} castShadow />
+            <hemisphereLight args={['#F6F7FF', '#A5F3FF', 0.6]} />
 
-          <WaterTank size={tankSize} useSimpleMaterial={true}>
-            <SandFloor width={tankSize[0]} depth={tankSize[2]} />
-            
-            {fishData.map((fish, i) => (
-              <Fish
-                key={`fish-${i}`}
-                color={fish.color}
-                scale={fish.scale}
-                tankSize={tankSize}
-                index={i}
-              />
-            ))}
-            
-            {plantPositions.map((position, i) => (
-              <Plant
-                key={`plant-${i}`}
-                position={position}
-                height={1.5 + Math.random() * 1.5}
-                color={`hsl(${120 + Math.random() * 40}, 70%, 60%)`}
-              />
-            ))}
-            
-            {crystalData.map((crystal, i) => (
-              <Crystal
-                key={`crystal-${i}`}
-                position={crystal.position}
-                rotation={crystal.rotation}
-                color={crystal.color}
-                height={crystal.height}
-                onExplode={handleCrystalExplode}
-              />
-            ))}
-          </WaterTank>
-          
-          <ScoreDisplay />
-        </Canvas>
-      </Suspense>
+            <WaterTank size={tankSize} useSimpleMaterial={true}>
+              <SandFloor width={tankSize[0]} depth={tankSize[2]} />
+              
+              {fishData.map((fish, i) => (
+                <Fish
+                  key={`fish-${i}`}
+                  color={fish.color}
+                  scale={fish.scale}
+                  tankSize={tankSize}
+                  index={i}
+                />
+              ))}
+              
+              {plantPositions.map((position, i) => (
+                <Plant
+                  key={`plant-${i}`}
+                  position={position}
+                  height={1.5 + Math.random() * 1.5}
+                  color={`hsl(${120 + Math.random() * 40}, 70%, 60%)`}
+                />
+              ))}
+              
+              {crystalData.map((crystal, i) => (
+                <Crystal
+                  key={`crystal-${i}`}
+                  position={crystal.position}
+                  rotation={crystal.rotation}
+                  color={crystal.color}
+                  height={crystal.height}
+                  onExplode={handleCrystalExplode}
+                />
+              ))}
+            </WaterTank>
+          </Canvas>
+        </Suspense>
+        
+        {/* ScoreDisplay moved outside the Canvas */}
+        <ScoreDisplay />
+      </div>
     </ErrorBoundary>
   );
 }

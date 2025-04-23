@@ -1,5 +1,5 @@
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { noise2D } from '../utils/noise';
 import * as THREE from 'three';
 
@@ -34,6 +34,18 @@ export function SandFloor({ width, depth, resolution = 32 }: SandFloorProps) {
       envMapIntensity: 1,
     });
   }, []);
+
+  // Properly dispose of resources when unmounted
+  useEffect(() => {
+    return () => {
+      if (geometry) {
+        geometry.dispose();
+      }
+      if (material) {
+        material.dispose();
+      }
+    };
+  }, [geometry, material]);
 
   return (
     <mesh 

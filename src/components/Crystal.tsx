@@ -1,5 +1,5 @@
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Vector3, MeshStandardMaterial } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
@@ -28,6 +28,19 @@ export function Crystal({
   const originalPosition = useRef(new Vector3(...position));
   const floorY = -2.8; // Matches SandFloor position
   
+  // Create material once and reuse
+  const material = useMemo(() => {
+    return new MeshStandardMaterial({
+      color: color,
+      emissive: color,
+      emissiveIntensity: 0.3,
+      roughness: 0.2,
+      metalness: 0.8,
+      transparent: true,
+      opacity: 1
+    });
+  }, [color]);
+  
   useFrame(({ clock }, delta) => {
     if (!crystalRef.current) return;
     
@@ -51,15 +64,29 @@ export function Crystal({
       // Slow rotation
       crystalRef.current.rotation.y += 0.01;
       
-      if (colorShift) {
-        const material = crystalRef.current.material as MeshStandardMaterial;
-        if (material.emissive) {
-          const hue = (Math.sin(time * 0.5) + 1) * 0.5;
-          material.emissive.setHSL(hue, 0.8, 0.5);
-        }
+      if (colorShift && material.emissive) {
+        const hue = (Math.sin(time * 0.5) + 1) * 0.5;
+        material.emissive.setHSL(hue, 0.8, 0.5);
       }
     }
   });
+
+  // Update material properties when exploding state changes
+  useEffect(() => {
+    if (material) {
+      material.emissiveIntensity = isExploding ? 1 : 0.3;
+      material.opacity = isExploding ? 0.5 : 1;
+    }
+  }, [isExploding, material]);
+
+  // Clean up resources
+  useEffect(() => {
+    return () => {
+      if (material) {
+        material.dispose();
+      }
+    };
+  }, [material]);
 
   const handleClick = () => {
     if (isExploding) return;
@@ -85,17 +112,9 @@ export function Crystal({
       position={position}
       rotation={rotation}
       onClick={handleClick}
+      material={material}
     >
       <octahedronGeometry args={[0.5, 0]} />
-      <meshStandardMaterial
-        color={color}
-        emissive={color}
-        emissiveIntensity={isExploding ? 1 : 0.3}
-        roughness={0.2}
-        metalness={0.8}
-        transparent
-        opacity={isExploding ? 0.5 : 1}
-      />
     </mesh>
   );
 }
