@@ -1,4 +1,3 @@
-
 import { useRef, useState, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Vector3, MeshStandardMaterial } from 'three';
@@ -88,7 +87,8 @@ export function Crystal({
     };
   }, [material]);
 
-  const handleClick = () => {
+  const handleClick = (event: any) => {
+    event.stopPropagation();
     if (isExploding) return;
     
     setIsExploding(true);
@@ -97,11 +97,16 @@ export function Crystal({
       onExplode(pos);
     }
 
+    // Reset after animation
     setTimeout(() => {
-      setIsExploding(false);
       if (crystalRef.current) {
-        crystalRef.current.position.set(...position);
-        velocityRef.current.set(0, 0, 0);
+        const randomPos: [number, number, number] = [
+          (Math.random() - 0.5) * 8,  // Random X within tank
+          -1 + Math.random() * 2,     // Random Y above floor
+          (Math.random() - 0.5) * 8   // Random Z within tank
+        ];
+        crystalRef.current.position.set(...randomPos);
+        setIsExploding(false);
       }
     }, 1000);
   };
@@ -112,9 +117,17 @@ export function Crystal({
       position={position}
       rotation={rotation}
       onClick={handleClick}
-      material={material}
+      onPointerOver={() => document.body.style.cursor = 'pointer'}
+      onPointerOut={() => document.body.style.cursor = 'default'}
     >
       <octahedronGeometry args={[0.5, 0]} />
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={isExploding ? 1 : 0.3}
+        transparent
+        opacity={isExploding ? 0.5 : 1}
+      />
     </mesh>
   );
 }

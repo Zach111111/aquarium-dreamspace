@@ -1,3 +1,4 @@
+
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group, Vector3, MathUtils } from 'three';
@@ -10,6 +11,7 @@ interface FishProps {
   tankSize: [number, number, number];
   index: number;
   audioLevel?: number;
+  groupOffset?: { x: number; y: number; z: number };
 }
 
 export function Fish({ 
@@ -18,7 +20,8 @@ export function Fish({
   speed = 1,
   tankSize,
   index,
-  audioLevel = 0
+  audioLevel = 0,
+  groupOffset = { x: 0, y: 0, z: 0 }
 }: FishProps) {
   const fishRef = useRef<Group>(null);
   const speedFactor = useAquariumStore(state => state.speedFactor);
@@ -35,48 +38,44 @@ export function Fish({
     maxZ: (tankDepth/2) * 0.8
   };
   
-  // Generate unique initial position for each fish
   const initialPosition = useMemo(() => new Vector3(
     MathUtils.lerp(bounds.minX, bounds.maxX, Math.random()),
     MathUtils.lerp(bounds.minY, bounds.maxY, Math.random()),
     MathUtils.lerp(bounds.minZ, bounds.maxZ, Math.random())
   ), [bounds]);
-  
-  // Generate unique movement parameters for each fish
+
   const movementParams = useMemo(() => ({
     amplitude: 0.01 + Math.random() * 0.01,
     frequency: 0.5 + Math.random() * 1.0,
-    phaseOffset: Math.random() * Math.PI * 2,
+    phaseOffset: Math.random() * Math.PI * 2 + index * (Math.PI / 4),
     verticalFactor: 0.3 + Math.random() * 0.7
-  }), []);
-  
-  // Store the target position for smooth movement
-  const targetPosition = useRef(initialPosition.clone());
-  const currentVelocity = useRef(new Vector3(0, 0, 0));
-  
+  }), [index]);
+
   useFrame(({ clock }) => {
     if (!fishRef.current) return;
     
     const time = clock.getElapsedTime();
     const actualSpeed = speed * speedFactor;
     
-    // Calculate new target position with wider range of motion
+    // Calculate base position with group offset
     const phase = time * movementParams.frequency * actualSpeed + movementParams.phaseOffset;
     
-    targetPosition.current.x = initialPosition.x + Math.sin(phase) * 6;
-    targetPosition.current.y = initialPosition.y + Math.sin(phase * movementParams.verticalFactor) * 4;
-    targetPosition.current.z = initialPosition.z + Math.cos(phase * 0.7) * 5;
+    const targetPos = new Vector3(
+      initialPosition.x + Math.sin(phase) * 6 + groupOffset.x,
+      initialPosition.y + Math.sin(phase * movementParams.verticalFactor) * 4 + groupOffset.y,
+      initialPosition.z + Math.cos(phase * 0.7) * 5 + groupOffset.z
+    );
     
-    // Apply position with boundary checks
-    targetPosition.current.x = MathUtils.clamp(targetPosition.current.x, bounds.minX, bounds.maxX);
-    targetPosition.current.y = MathUtils.clamp(targetPosition.current.y, bounds.minY, bounds.maxY);
-    targetPosition.current.z = MathUtils.clamp(targetPosition.current.z, bounds.minZ, bounds.maxZ);
+    // Apply boundary limits
+    targetPos.x = MathUtils.clamp(targetPos.x, bounds.minX, bounds.maxX);
+    targetPos.y = MathUtils.clamp(targetPos.y, bounds.minY, bounds.maxY);
+    targetPos.z = MathUtils.clamp(targetPos.z, bounds.minZ, bounds.maxZ);
     
-    // Smooth movement towards target position
-    fishRef.current.position.lerp(targetPosition.current, 0.02 * actualSpeed);
+    // Smooth movement
+    fishRef.current.position.lerp(targetPos, 0.02 * actualSpeed);
     
-    // Fish rotation facing movement direction
-    const direction = new Vector3().subVectors(targetPosition.current, fishRef.current.position).normalize();
+    // Fish rotation
+    const direction = new Vector3().subVectors(targetPos, fishRef.current.position).normalize();
     if (direction.length() > 0.1) {
       fishRef.current.lookAt(fishRef.current.position.clone().add(direction));
       fishRef.current.rotation.z = Math.sin(time * 3 * speedFactor) * 0.2;
@@ -85,11 +84,18 @@ export function Fish({
 
   const handleClick = (event: any) => {
     event.stopPropagation();
+    event.preventDefault();
     decrementScore();
   };
 
   return (
-    <group ref={fishRef} position={initialPosition.toArray()} onClick={handleClick}>
+    <group 
+      ref={fishRef} 
+      position={initialPosition.toArray()}
+      onClick={handleClick}
+      onPointerOver={() => document.body.style.cursor = 'pointer'}
+      onPointerOut={() => document.body.style.cursor = 'default'}
+    >
       <mesh scale={[scale, scale * 0.6, scale * 0.5]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 
@@ -100,7 +106,10 @@ export function Fish({
         />
       </mesh>
       
-      <mesh position={[-scale * 0.4, 0, 0]} scale={[scale * 0.4, scale * 0.3, scale * 0.2]}>
+      <mesh 
+        position={[-scale * 0.4, 0, 0]} 
+        scale={[scale * 0.4, scale * 0.3, scale * 0.2]}
+      >
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 
           color={color} 

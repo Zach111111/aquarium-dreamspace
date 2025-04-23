@@ -1,4 +1,3 @@
-
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
 import { Suspense } from 'react';
@@ -19,32 +18,53 @@ export function AquariumScene() {
   const incrementScore = useAquariumStore(state => state.incrementScore);
   const tankSize: [number, number, number] = [10, 6, 10];
 
-  const fishData = Array.from({ length: 5 }, (_, index) => ({
-    scale: 0.7 + Math.random() * 0.6,
-    speed: 0.5 + Math.random() * 1.5,
-    color: `hsl(${index * 36 + 180}, 70%, ${50 + index * 5}%)`
-  }));
+  // Create fish groups (4-5 groups of 2-3 fish each)
+  const fishGroups = useMemo(() => {
+    const groups = [];
+    const numGroups = 4 + Math.floor(Math.random() * 2); // 4-5 groups
+    
+    for (let i = 0; i < numGroups; i++) {
+      const groupSize = 2 + Math.floor(Math.random() * 2); // 2-3 fish per group
+      const groupBase = {
+        x: (Math.random() - 0.5) * tankSize[0] * 0.7,
+        y: (Math.random() - 0.5) * tankSize[1] * 0.7,
+        z: (Math.random() - 0.5) * tankSize[2] * 0.7,
+        speed: 0.5 + Math.random() * 1.5
+      };
+      
+      const group = Array.from({ length: groupSize }, (_, index) => ({
+        scale: 0.7 + Math.random() * 0.3,
+        speed: groupBase.speed * (0.9 + Math.random() * 0.2),
+        color: `hsl(${180 + Math.random() * 60}, 70%, ${50 + index * 5}%)`,
+        offset: {
+          x: (Math.random() - 0.5) * 0.5,
+          y: (Math.random() - 0.5) * 0.5,
+          z: (Math.random() - 0.5) * 0.5
+        }
+      }));
+      groups.push(group);
+    }
+    return groups;
+  }, []);
 
-  const plantPositions = Array.from({ length: 6 }, () => ([
-    (Math.random() - 0.5) * tankSize[0] * 0.7,
-    -tankSize[1] / 2 * 0.9,
-    (Math.random() - 0.5) * tankSize[2] * 0.7
-  ] as [number, number, number]));
-
-  const crystalData = Array.from({ length: 3 }, () => ({
-    position: [
-      (Math.random() - 0.5) * tankSize[0] * 0.6,
-      -tankSize[1] / 2 * 0.7 + Math.random() * 0.5,
-      (Math.random() - 0.5) * tankSize[2] * 0.6
-    ] as [number, number, number],
-    rotation: [
-      Math.random() * Math.PI * 0.2,
-      Math.random() * Math.PI * 2,
-      Math.random() * Math.PI * 0.2
-    ] as [number, number, number],
-    color: `hsl(${Math.random() * 60 + 240}, 70%, 60%)`,
-    height: 0.8 + Math.random() * 1.2
-  }));
+  // Generate crystal positions
+  const crystalData = Array.from({ length: 3 }, () => {
+    const safeRadius = 1; // Minimum distance from tank edges
+    return {
+      position: [
+        (Math.random() - 0.5) * (tankSize[0] - safeRadius * 2),
+        -tankSize[1] / 2 * 0.7 + Math.random() * 2,
+        (Math.random() - 0.5) * (tankSize[2] - safeRadius * 2)
+      ] as [number, number, number],
+      rotation: [
+        Math.random() * Math.PI * 0.2,
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 0.2
+      ] as [number, number, number],
+      color: `hsl(${Math.random() * 60 + 240}, 70%, 60%)`,
+      height: 0.8 + Math.random() * 1.2
+    };
+  });
 
   const handleCrystalExplode = (position: [number, number, number]) => {
     incrementScore();
@@ -97,14 +117,20 @@ export function AquariumScene() {
             <WaterTank size={tankSize} useSimpleMaterial={true}>
               <SandFloor width={tankSize[0]} depth={tankSize[2]} />
               
-              {fishData.map((fish, i) => (
-                <Fish
-                  key={`fish-${i}`}
-                  color={fish.color}
-                  scale={fish.scale}
-                  tankSize={tankSize}
-                  index={i}
-                />
+              {fishGroups.map((group, groupIndex) => (
+                <group key={`group-${groupIndex}`}>
+                  {group.map((fish, fishIndex) => (
+                    <Fish
+                      key={`fish-${groupIndex}-${fishIndex}`}
+                      color={fish.color}
+                      scale={fish.scale}
+                      speed={fish.speed}
+                      tankSize={tankSize}
+                      index={groupIndex * 3 + fishIndex}
+                      groupOffset={fish.offset}
+                    />
+                  ))}
+                </group>
               ))}
               
               {plantPositions.map((position, i) => (

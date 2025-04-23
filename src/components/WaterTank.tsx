@@ -20,11 +20,12 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
     return new THREE.MeshStandardMaterial({
       color: "#66ccff",
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.3,
       side: THREE.DoubleSide,
       depthWrite: true,
       roughness: 0.2,
-      metalness: 0.1
+      metalness: 0.1,
+      envMapIntensity: 1.5
     });
   }, []);
 
@@ -32,7 +33,7 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
     return new THREE.MeshStandardMaterial({
       color: "#F6F7FF",
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.25,
       side: THREE.FrontSide,
       depthWrite: false,
       depthTest: true,
@@ -41,16 +42,6 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
       envMapIntensity: 1.5
     });
   }, []);
-
-  // Create edges geometry
-  const edgesGeometry = useMemo(() => {
-    const boxGeometry = new THREE.BoxGeometry(
-      width + 0.25,
-      height + 0.25,
-      depth + 0.25
-    );
-    return new THREE.EdgesGeometry(boxGeometry);
-  }, [width, height, depth]);
 
   useFrame(({ clock }) => {
     if (!waterRef.current) return;
@@ -75,10 +66,10 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
         <primitive object={glassMaterial} />
       </mesh>
 
-      {/* Tank edges */}
+      {/* Tank edges with increased opacity */}
       <lineSegments ref={edgesRef}>
-        <primitive object={edgesGeometry} />
-        <lineBasicMaterial color="#ffffff" opacity={0.5} transparent />
+        <edgesGeometry args={[new THREE.BoxGeometry(width + 0.25, height + 0.25, depth + 0.25)]} />
+        <lineBasicMaterial color="#ffffff" opacity={0.7} transparent />
       </lineSegments>
       
       {/* Tank contents */}
