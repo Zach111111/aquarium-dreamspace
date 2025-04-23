@@ -1,3 +1,4 @@
+
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -98,6 +99,10 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     `,
   };
 
+  // Calculate inset walls to prevent z-fighting (reduce thickness by 0.25)
+  const wallThickness = 0.25; // Reduced from 0.5
+  const insetFactor = 0.125; // Inset walls by 0.125 units
+
   return (
     <group>
       {/* Water volume */}
@@ -116,9 +121,9 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
         />
       </mesh>
       
-      {/* Tank glass walls */}
+      {/* Tank glass walls - now with BackSide rendering and reduced thickness */}
       <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[width + 0.1, height + 0.1, depth + 0.1]} />
+        <boxGeometry args={[width + wallThickness, height + wallThickness, depth + wallThickness]} />
         <meshPhysicalMaterial
           color="#F6F7FF"
           transparent={true}
@@ -126,8 +131,8 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
           roughness={0.05}
           metalness={0.0}
           transmission={0.9}
-          thickness={0.5}
-          side={THREE.BackSide}
+          thickness={0.25} // Reduced thickness
+          side={THREE.BackSide} // BackSide rendering for proper viewing from inside
         />
       </mesh>
       

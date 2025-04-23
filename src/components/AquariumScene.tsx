@@ -1,7 +1,7 @@
 
 import React, { useMemo, useRef, useState, useEffect, Suspense } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { PerspectiveCamera, OrbitControls, Stats } from '@react-three/drei';
+import { PerspectiveCamera, Stats } from '@react-three/drei';
 import * as THREE from 'three';
 import { Fish } from './Fish';
 import { Plant } from './Plant';
@@ -13,37 +13,6 @@ import { useAquariumStore } from '../store/aquariumStore';
 import { audioManager } from '../utils/audio';
 import { random } from '../utils/noise';
 import { toast } from "@/components/ui/use-toast";
-
-// Camera controller with audio-reactive movement
-function CameraController() {
-  const { camera } = useThree();
-  const orbitControlsRef = useRef<any>(null);
-  const orbitSpeed = useAquariumStore(state => state.orbitSpeed);
-  
-  useFrame(({ clock }) => {
-    if (orbitControlsRef.current && orbitSpeed > 0) {
-      // Apply automatic orbit if orbit speed is greater than 0
-      orbitControlsRef.current.autoRotate = true;
-      orbitControlsRef.current.autoRotateSpeed = orbitSpeed * 2;
-    } else if (orbitControlsRef.current) {
-      orbitControlsRef.current.autoRotate = false;
-    }
-  });
-  
-  return (
-    <OrbitControls
-      ref={orbitControlsRef}
-      enableDamping
-      dampingFactor={0.05}
-      rotateSpeed={0.5}
-      minDistance={5}
-      maxDistance={15}
-      // Limit vertical rotation to avoid strange angles
-      minPolarAngle={Math.PI / 6}
-      maxPolarAngle={Math.PI * 5/6}
-    />
-  );
-}
 
 // Mouse position tracker for particle interaction
 function MouseTracker({ setMousePosition }: { setMousePosition: (position: THREE.Vector3 | null) => void }) {
@@ -81,6 +50,18 @@ function MouseTracker({ setMousePosition }: { setMousePosition: (position: THREE
       <planeGeometry args={[100, 100]} />
       <meshBasicMaterial transparent opacity={0} />
     </mesh>
+  );
+}
+
+// Lighting component with enhanced lighting setup
+function Lighting() {
+  return (
+    <>
+      {/* Enhanced lighting setup */}
+      <ambientLight intensity={0.3} />
+      <directionalLight position={[10, 10, 5]} intensity={1.2} castShadow />
+      <hemisphereLight args={['#F6F7FF', '#A5F3FF', 0.6]} />
+    </>
   );
 }
 
@@ -148,7 +129,7 @@ function AudioReactiveElements({ mousePosition, tankSize, fishData, plantPositio
       
       {/* Particles */}
       <Particles 
-        count={150} // Reduced particle count further
+        count={150}
         tankSize={tankSize}
         mousePosition={mousePosition}
         audioLevel={audioLevels.bass}
@@ -164,9 +145,9 @@ function AudioReactiveElements({ mousePosition, tankSize, fishData, plantPositio
 export function AquariumScene() {
   const [mousePosition, setMousePosition] = useState<THREE.Vector3 | null>(null);
   const tankSize: [number, number, number] = [10, 6, 10]; // Width, height, depth
-  const [fishCount] = useState(8); // Reduced fish count further
-  const [plantCount] = useState(4); // Reduced plant count further
-  const [crystalCount] = useState(3); // Reduced crystal count further
+  const [fishCount] = useState(8);
+  const [plantCount] = useState(4);
+  const [crystalCount] = useState(3);
   
   // Generate fish data
   const fishData = useMemo(() => {
@@ -234,25 +215,25 @@ export function AquariumScene() {
     
     window.addEventListener('webglcontextlost', handleContextLoss);
 
+    const handleClick = () => {
+      try {
+        audioManager.play();
+      } catch (error) {
+        console.error('Audio play error:', error);
+        toast({
+          title: "Audio Error",
+          description: "Couldn't play audio. Try refreshing the page.",
+          variant: "destructive"
+        });
+      }
+      document.removeEventListener('click', handleClick);
+    };
+
     try {
       // Use a placeholder tone instead of loading a full audio file
       audioManager.initialize('/audio/main_theme.wav');
       
       // Add click event listener to start audio
-      const handleClick = () => {
-        try {
-          audioManager.play();
-        } catch (error) {
-          console.error('Audio play error:', error);
-          toast({
-            title: "Audio Error",
-            description: "Couldn't play audio. Try refreshing the page.",
-            variant: "warning"
-          });
-        }
-        document.removeEventListener('click', handleClick);
-      };
-      
       document.addEventListener('click', handleClick);
     } catch (error) {
       console.error('Audio initialization error:', error);
@@ -271,28 +252,24 @@ export function AquariumScene() {
   
   return (
     <Canvas 
+      className="w-full h-full"
       style={{ background: 'linear-gradient(to bottom, #1A1F2C, #222744)' }}
       gl={{ 
-        antialias: false, // Disable antialiasing for performance
-        powerPreference: 'low-power', // Request low power mode for better stability
+        antialias: true,
+        depth: true,
         alpha: false,
         stencil: false,
-        depth: true,
       }}
     >
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
           <MouseTracker setMousePosition={setMousePosition} />
-          <CameraController />
+          
+          {/* Fixed perspective camera - no orbit controls */}
           <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
           
-          {/* Simplified lighting setup */}
-          <ambientLight intensity={0.3} />
-          <directionalLight position={[5, 10, 5]} intensity={0.7} color="#F6F7FF" />
-          
-          {/* Reduced number of point lights */}
-          <pointLight position={[5, 3, 0]} intensity={0.4} color="#C9B7FF" />
-          <pointLight position={[-5, -2, 0]} intensity={0.4} color="#FFB1DC" />
+          {/* Enhanced lighting */}
+          <Lighting />
           
           <AudioReactiveElements
             mousePosition={mousePosition}
