@@ -9,11 +9,12 @@ import { Lighting } from './Lighting';
 
 export function FishTankDemo() {
   return (
-    <div className="w-full h-screen">
+    <div className="w-full h-screen relative overflow-hidden">
       <ErrorBoundary>
         <Canvas
-          camera={{ position: [0, 0, 12], fov: 60 }}
+          className="absolute inset-0"
           style={{ background: '#1A1F2C' }}
+          camera={{ position: [0, 0, 12], fov: 60 }}
           gl={{ 
             antialias: true, 
             alpha: false,
@@ -21,20 +22,33 @@ export function FishTankDemo() {
             depth: true,
             powerPreference: 'default'
           }}
-          dpr={[0.6, 1]} // Reduced DPR for better performance
+          dpr={[0.6, 1]}
+          onCreated={({ gl, camera }) => {
+            const resize = () => {
+              gl.setSize(window.innerWidth, window.innerHeight);
+              camera.aspect = window.innerWidth / window.innerHeight;
+              camera.updateProjectionMatrix();
+            };
+            window.addEventListener('resize', resize);
+            resize();
+            return () => window.removeEventListener('resize', resize);
+          }}
+          onContextLost={(e) => {
+            console.warn('WebGL context lost', e);
+            toast({
+              title: "Rendering Issue",
+              description: "WebGL context was lost. Trying to recover...",
+              variant: "destructive"
+            });
+          }}
         >
-          {/* Improved lighting setup */}
           <Lighting />
-          
-          {/* Debug Cube - shows a rotating pink cube */}
           <DebugCube />
           
-          {/* Water Tank with Suspense for async loading */}
           <Suspense fallback={null}>
             <WaterTank size={[5, 4, 5]} useSimpleMaterial={true} />
           </Suspense>
           
-          {/* Controls to move around the scene */}
           <OrbitControls enableDamping dampingFactor={0.1} />
         </Canvas>
       </ErrorBoundary>

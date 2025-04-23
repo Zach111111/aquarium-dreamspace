@@ -26,40 +26,52 @@ export function CanvasContainer({ children, onError }: CanvasContainerProps) {
     });
   };
 
-  // Use the most compatible WebGL settings
   return (
-    <Canvas 
-      className="w-full h-full"
-      style={{ background: '#1A1F2C' }}
-      gl={{ 
-        antialias: false,  // Disable antialiasing for better compatibility
-        powerPreference: 'default',
-        alpha: false,
-        stencil: false,
-        depth: true,
-        failIfMajorPerformanceCaveat: false
-      }}
-      dpr={0.6} // Much lower resolution for better compatibility
-      frameloop="demand" // Only render when needed
-      onCreated={({ gl }) => {
-        gl.setClearColor(new THREE.Color('#1A1F2C'));
-        console.log("Canvas created successfully");
-      }}
-      onError={handleCanvasError}
-    >
-      <ErrorBoundary>
-        {!renderFailed && children}
-        {renderFailed && (
-          <>
-            <ambientLight intensity={0.5} />
-            <mesh position={[0, 0, 0]}>
-              <boxGeometry args={[2, 2, 2]} />
-              <meshBasicMaterial color="#FF0000" wireframe />
-            </mesh>
-          </>
-        )}
-      </ErrorBoundary>
-    </Canvas>
+    <div className="relative w-full h-full overflow-hidden">
+      <Canvas 
+        className="absolute inset-0"
+        style={{ background: '#1A1F2C' }}
+        gl={{ 
+          antialias: false,
+          powerPreference: 'default',
+          alpha: false,
+          stencil: false,
+          depth: true,
+          failIfMajorPerformanceCaveat: false
+        }}
+        dpr={0.6}
+        frameloop="demand"
+        onCreated={({ gl, camera }) => {
+          gl.setClearColor(new THREE.Color('#1A1F2C'));
+          console.log("Canvas created successfully");
+          
+          const resize = () => {
+            gl.setSize(window.innerWidth, window.innerHeight);
+            if (camera instanceof THREE.PerspectiveCamera) {
+              camera.aspect = window.innerWidth / window.innerHeight;
+              camera.updateProjectionMatrix();
+            }
+          };
+          window.addEventListener('resize', resize);
+          resize();
+          return () => window.removeEventListener('resize', resize);
+        }}
+        onError={handleCanvasError}
+      >
+        <ErrorBoundary>
+          {!renderFailed && children}
+          {renderFailed && (
+            <>
+              <ambientLight intensity={0.5} />
+              <mesh position={[0, 0, 0]}>
+                <boxGeometry args={[2, 2, 2]} />
+                <meshBasicMaterial color="#FF0000" wireframe />
+              </mesh>
+            </>
+          )}
+        </ErrorBoundary>
+      </Canvas>
+    </div>
   );
 }
 

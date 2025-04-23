@@ -13,12 +13,10 @@ const Index = () => {
   useEffect(() => {
     let progress = 0;
     const interval = setInterval(() => {
-      progress += 25; // Faster loading
+      progress += 25;
       if (progress >= 100) {
         progress = 100;
         clearInterval(interval);
-        
-        // Shorter delay before showing scene
         setTimeout(() => {
           setIsLoading(false);
           console.log("Loading complete, showing aquarium scene");
@@ -36,9 +34,9 @@ const Index = () => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="relative w-screen h-screen overflow-hidden">
       {isLoading ? (
-        // Simplified loading screen
+        // Loading screen
         <div className="flex flex-col items-center justify-center h-full bg-[#1A1F2C] text-white">
           <h1 className="text-3xl font-bold mb-4">
             AQUARIUM<span className="text-cyan-500">DREAMSPACE</span>
@@ -59,18 +57,21 @@ const Index = () => {
           </button>
         </div>
       ) : (
-        // Main aquarium scene - simplified
-        <div className="relative h-full w-full">
-          {/* Core aquarium scene */}
-          <AquariumScene />
-          
-          {/* Info text */}
-          <div className="absolute top-5 left-5 text-white z-10">
-            <h1 className="text-xl font-bold tracking-wider bg-black/50 px-3 py-1 rounded">
-              AQUARIUM<span className="text-cyan-500">DREAMSPACE</span>
-            </h1>
+        <>
+          {/* 3D Canvas Background - z-index 0 */}
+          <div className="absolute inset-0 z-0">
+            <AquariumScene />
           </div>
-        </div>
+
+          {/* UI Overlay - z-index 1 */}
+          <div className="absolute inset-0 z-10 pointer-events-none">
+            <div className="p-5">
+              <h1 className="text-xl font-bold tracking-wider bg-black/50 px-3 py-1 rounded inline-block pointer-events-auto">
+                AQUARIUM<span className="text-cyan-500">DREAMSPACE</span>
+              </h1>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
