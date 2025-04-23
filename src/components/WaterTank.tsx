@@ -162,7 +162,7 @@ export function WaterTank({
         onPointerDown={handlePointerDown}
       >
         <boxGeometry args={[width * 0.98, height * 0.98, depth * 0.98]} />
-        {waterMaterial}
+        <primitive object={waterMaterial} attach="material" />
       </mesh>
       
       {/* Glass walls */}
@@ -177,7 +177,7 @@ export function WaterTank({
             depth + wallThickness,
           ]}
         />
-        {glassMaterial}
+        <primitive object={glassMaterial} attach="material" />
       </mesh>
       
       {/* Tank contents */}
