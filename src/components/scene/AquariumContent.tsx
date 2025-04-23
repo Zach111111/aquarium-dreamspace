@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -23,8 +22,8 @@ const AquariumContent = () => {
   const orbitSpeed = useAquariumStore(state => state.orbitSpeed);
   const [fishWorldPositions, setFishWorldPositions] = useState<THREE.Vector3[]>([]);
   
-  // Use a ref to store fish mesh references
-  const fishRefs = useRef<Array<THREE.Mesh | null>>([]);
+  // Updated: Use Group instead of Mesh for the fish refs
+  const fishRefs = useRef<Array<THREE.Group | null>>([]);
   
   // Initialize the array with nulls
   useMemo(() => {
