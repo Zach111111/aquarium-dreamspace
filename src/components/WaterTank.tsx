@@ -1,8 +1,11 @@
 
 import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, extend } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
+
+// Extend Three.js with ShaderMaterial so we can use it as a JSX element
+extend({ ShaderMaterial: THREE.ShaderMaterial });
 
 interface WaterTankProps {
   size: [number, number, number];
@@ -45,6 +48,7 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     }
   });
 
+  // Define water shader with fixed precision and correct vec2 access
   const waterShader = {
     uniforms: {
       uTime: { value: 0 },
@@ -99,6 +103,9 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
   const wallThickness = 0.25;
   const insetFactor = 0.125;
 
+  // Debug mode: uncomment to use simple material instead of shader
+  const useSimpleMaterial = false;
+
   return (
     <group>
       <mesh 
@@ -109,11 +116,24 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
         onPointerLeave={handlePointerUp}
       >
         <boxGeometry args={[width, height, depth]} />
-        <shaderMaterial 
-          {...waterShader} 
-          transparent={true} 
-          side={THREE.DoubleSide}
-        />
+        {useSimpleMaterial ? (
+          // Debug option 1: Use a simple material
+          <meshStandardMaterial
+            color="#66ccff"
+            transparent
+            opacity={0.2}
+            side={THREE.DoubleSide}
+          />
+        ) : (
+          // Use explicit uniforms, vertexShader, fragmentShader props
+          <shaderMaterial 
+            uniforms={waterShader.uniforms}
+            vertexShader={waterShader.vertexShader}
+            fragmentShader={waterShader.fragmentShader}
+            transparent={true} 
+            side={THREE.DoubleSide}
+          />
+        )}
       </mesh>
       
       <mesh position={[0, 0, 0]}>

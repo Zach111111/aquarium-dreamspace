@@ -169,7 +169,8 @@ export function AquariumScene() {
         stencil: false,
       }}
     >
-      <ErrorBoundary>
+      {/* Comment out ErrorBoundary for debugging */}
+      {/* <ErrorBoundary> */}
         <Suspense fallback={<LoadingFallback />}>
           <MouseTracker setMousePosition={setMousePosition} />
           
@@ -186,7 +187,7 @@ export function AquariumScene() {
           
           {process.env.NODE_ENV === 'development' && <Stats />}
         </Suspense>
-      </ErrorBoundary>
+      {/* </ErrorBoundary> */}
     </Canvas>
   );
 }
