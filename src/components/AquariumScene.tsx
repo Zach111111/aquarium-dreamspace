@@ -1,4 +1,3 @@
-
 import React, { useMemo, useRef, useState, useEffect, Suspense } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -169,8 +168,7 @@ export function AquariumScene() {
         stencil: false,
       }}
     >
-      {/* Comment out ErrorBoundary for debugging */}
-      {/* <ErrorBoundary> */}
+      <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
           <MouseTracker setMousePosition={setMousePosition} />
           
@@ -187,7 +185,7 @@ export function AquariumScene() {
           
           {process.env.NODE_ENV === 'development' && <Stats />}
         </Suspense>
-      {/* </ErrorBoundary> */}
+      </ErrorBoundary>
     </Canvas>
   );
 }

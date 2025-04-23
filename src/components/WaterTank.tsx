@@ -48,7 +48,7 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     }
   });
 
-  // Define water shader with fixed precision and correct vec2 access
+  // Define water shader with fixed precision
   const waterShader = {
     uniforms: {
       uTime: { value: 0 },
@@ -103,8 +103,8 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
   const wallThickness = 0.25;
   const insetFactor = 0.125;
 
-  // Debug mode: uncomment to use simple material instead of shader
-  const useSimpleMaterial = false;
+  // For debugging purposes
+  const useSimpleMaterial = true;
 
   return (
     <group>
@@ -117,7 +117,7 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
       >
         <boxGeometry args={[width, height, depth]} />
         {useSimpleMaterial ? (
-          // Debug option 1: Use a simple material
+          // Simple material for debugging
           <meshStandardMaterial
             color="#66ccff"
             transparent
@@ -125,7 +125,7 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
             side={THREE.DoubleSide}
           />
         ) : (
-          // Use explicit uniforms, vertexShader, fragmentShader props
+          // Shader material with explicit properties
           <shaderMaterial 
             uniforms={waterShader.uniforms}
             vertexShader={waterShader.vertexShader}
