@@ -1,79 +1,8 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { useFrame, extend } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { shaderMaterial } from '@react-three/drei';
 import { useAquariumStore } from '../store/aquariumStore';
-
-// Define WaterShaderMaterial - custom shader material for the water effect
-const WaterShaderMaterial = shaderMaterial(
-  // Uniforms
-  {
-    time: 0,
-    color: new THREE.Color('#66ccff'),
-    opacity: 0.6
-  },
-  // Vertex shader
-  `
-    varying vec2 vUv;
-    varying vec3 vPosition;
-    uniform float time;
-    
-    void main() {
-      vUv = uv;
-      vPosition = position;
-      vec3 pos = position;
-      
-      // Simple wave effect
-      float waveHeight = sin(pos.x * 2.0 + time) * 0.05;
-      waveHeight += sin(pos.z * 3.0 + time * 1.5) * 0.03;
-      pos.y += waveHeight;
-      
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-    }
-  `,
-  // Fragment shader
-  `
-    uniform float time;
-    uniform vec3 color;
-    uniform float opacity;
-    
-    varying vec2 vUv;
-    varying vec3 vPosition;
-    
-    void main() {
-      // Water color effect
-      vec3 waterColor = color;
-      
-      // Add some depth effect
-      float depth = clamp(vPosition.y * 0.5 + 0.5, 0.0, 1.0);
-      waterColor = mix(waterColor * 0.5, waterColor, depth);
-      
-      // Add ripple effect
-      float ripple = sin(vUv.x * 20.0 + time) * 0.05;
-      ripple += sin(vUv.y * 20.0 + time * 0.8) * 0.05;
-      waterColor += ripple;
-      
-      gl_FragColor = vec4(waterColor, opacity);
-    }
-  `
-);
-
-// Add material properties explicitly
-WaterShaderMaterial.prototype.transparent = true;
-WaterShaderMaterial.prototype.side = THREE.DoubleSide;
-
-// Extend to make it available in JSX
-extend({ WaterShaderMaterial });
-
-// Add type for the extended material
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      waterShaderMaterial: any;
-    }
-  }
-}
 
 interface WaterTankProps {
   size?: [number, number, number];
@@ -92,12 +21,7 @@ export function WaterTank({
   const toggleMenu = useAquariumStore(state => state.toggleMenu);
   const waterRef = useRef<THREE.Mesh>(null);
   const glassRef = useRef<THREE.Mesh>(null);
-  const waterMaterialRef = useRef<any>(null);
   
-  // Material fallback state
-  const [shouldUseSimpleMaterial, setShouldUseSimpleMaterial] = useState(useSimpleMaterial);
-  const [materialFailure, setMaterialFailure] = useState(false);
-
   // Performance monitoring
   useEffect(() => {
     let frameCount = 0;
@@ -114,9 +38,8 @@ export function WaterTank({
         lastTime = now;
         
         // If FPS drops below threshold, switch to simple materials
-        if (fps < 30 && !shouldUseSimpleMaterial) {
+        if (fps < 30 && !useSimpleMaterial) {
           console.log('Low performance detected, switching to simple materials');
-          setShouldUseSimpleMaterial(true);
         }
       }
       
@@ -126,7 +49,7 @@ export function WaterTank({
     const handle = requestAnimationFrame(checkPerformance);
     
     return () => cancelAnimationFrame(handle);
-  }, [shouldUseSimpleMaterial]);
+  }, [useSimpleMaterial]);
 
   // Basic interaction with safe error handling
   const handlePointerDown = () => {
@@ -137,13 +60,8 @@ export function WaterTank({
     }
   };
 
-  // Update shader uniforms on each frame
+  // Update animation on each frame
   useFrame(({ clock }) => {
-    // Update shader time uniform
-    if (waterMaterialRef.current && waterMaterialRef.current.uniforms) {
-      waterMaterialRef.current.uniforms.time.value = clock.getElapsedTime();
-    }
-    
     if (!waterRef.current) return;
     
     try {
@@ -160,39 +78,23 @@ export function WaterTank({
     }
   });
 
-  // Material creation with error handling
+  // Create materials
+  const waterMaterial = useMemo(() => {
+    return new THREE.MeshBasicMaterial({
+      color: "#66ccff",
+      transparent: true,
+      opacity: 0.6
+    });
+  }, []);
+
   const glassMaterial = useMemo(() => {
-    try {
-      if (shouldUseSimpleMaterial || materialFailure) {
-        return new THREE.MeshBasicMaterial({
-          color: "#F6F7FF",
-          transparent: true,
-          opacity: 0.2,
-          side: THREE.BackSide
-        });
-      } else {
-        return new THREE.MeshPhysicalMaterial({
-          color: "#F6F7FF",
-          transparent: true,
-          opacity: 0.2,
-          transmission: 0.95,
-          thickness: 0.25,
-          roughness: 0.05,
-          ior: 1.52,
-          side: THREE.BackSide
-        });
-      }
-    } catch (error) {
-      console.error("Failed to create glass material:", error);
-      setMaterialFailure(true);
-      return new THREE.MeshBasicMaterial({
-        color: "#F6F7FF",
-        transparent: true,
-        opacity: 0.2,
-        side: THREE.BackSide
-      });
-    }
-  }, [shouldUseSimpleMaterial, materialFailure]);
+    return new THREE.MeshBasicMaterial({
+      color: "#F6F7FF",
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.BackSide
+    });
+  }, []);
 
   // thickness for the glass walls
   const wallThickness = 0.25;
@@ -206,19 +108,7 @@ export function WaterTank({
         onPointerDown={handlePointerDown}
       >
         <boxGeometry args={[width * 0.98, height * 0.98, depth * 0.98]} />
-        {shouldUseSimpleMaterial || materialFailure ? (
-          <meshBasicMaterial 
-            color="#66ccff"
-            transparent
-            opacity={0.6}
-          />
-        ) : (
-          <waterShaderMaterial 
-            ref={waterMaterialRef}
-            key="water-shader"
-            attach="material"
-          />
-        )}
+        <primitive object={waterMaterial} attach="material" />
       </mesh>
       
       {/* Glass walls */}
