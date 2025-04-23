@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, forwardRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Vector3 } from 'three';
@@ -30,47 +29,54 @@ export const Fish = forwardRef<Mesh, FishProps>(({
   allFishPositions = [],
 }, ref) => {
   const internalRef = useRef<Mesh>(null);
-  const fishRef = ref || internalRef;
+  const meshRef = useRef<Mesh | null>(null);
+
+  useEffect(() => {
+    if (typeof ref === 'function') {
+      if (internalRef.current) {
+        ref(internalRef.current);
+      }
+    } else if (ref) {
+      ref.current = internalRef.current;
+    }
+    meshRef.current = internalRef.current;
+  }, [ref]);
+
   const velocity = useRef(new Vector3(random(-1, 1), random(-0.5, 0.5), random(-1, 1)));
   const targetPosition = useRef(new Vector3());
-  const soloTendency = useRef(Math.random() * 0.7 + 0.3); // blend between group & solo
+  const soloTendency = useRef(Math.random() * 0.7 + 0.3);
 
-  // Initial random position
   useEffect(() => {
-    if (fishRef.current) {
+    if (meshRef.current) {
       const [tankWidth, tankHeight, tankDepth] = tankSize;
-      fishRef.current.position.set(
+      meshRef.current.position.set(
         random(-tankWidth * 0.3, tankWidth * 0.3),
         random(-tankHeight * 0.2, tankHeight * 0.2),
         random(-tankDepth * 0.3, tankDepth * 0.3)
       );
-      targetPosition.current.copy(fishRef.current.position);
+      targetPosition.current.copy(meshRef.current.position);
     }
-    // eslint-disable-next-line
   }, [tankSize]);
 
   useFrame(({ clock }) => {
-    if (!fishRef.current) return;
+    if (!meshRef.current) return;
     const [tankWidth, tankHeight, tankDepth] = tankSize;
     const t = clock.getElapsedTime();
-    const fish = fishRef.current;
+    const fish = meshRef.current;
     const thisPos = fish.position;
     let target = new Vector3().copy(targetPosition.current);
 
-    // natural gentle noise-based wandering
     const noiseScale = 0.45;
     target.x += noise3D(index * 10 + 10, 0, t * 0.25) * noiseScale * 3;
     target.y += noise3D(0, index * 10 + 20, t * 0.19) * noiseScale * 2;
     target.z += noise3D(0, 0, t * 0.23 + index * 5) * noiseScale * 3;
 
-    // Schooling effect ("boids-lite")
     if (allFishPositions && allFishPositions.length > 2) {
-      // steer toward group "center" sometimes, but keep some solo/chaos
       let avg = new Vector3();
       let neighborCount = 0;
       allFishPositions.forEach((pos, i) => {
         if (i !== index && pos) {
-          if (thisPos.distanceTo(pos) < 3.5) { // in proximity
+          if (thisPos.distanceTo(pos) < 3.5) {
             avg.add(pos);
             neighborCount++;
           }
@@ -78,38 +84,31 @@ export const Fish = forwardRef<Mesh, FishProps>(({
       });
       if (neighborCount > 0) {
         avg.multiplyScalar(1 / neighborCount);
-        // steer slightly to the group with solo blend
         target.lerp(avg, 0.25 * (1 - soloTendency.current));
       }
     }
 
-    // Smoothly chase the target
     lerpVec(thisPos, target, 0.012 * (0.7 + 0.6 * speed) * (1 + audioLevel * 0.3));
 
-    // Stay in tank bounds & vertical level
     thisPos.x = Math.max(-tankWidth / 2 + 1, Math.min(tankWidth / 2 - 1, thisPos.x));
     thisPos.y = Math.max(-tankHeight / 2 + 1, Math.min(tankHeight / 2 - 1, thisPos.y));
     thisPos.z = Math.max(-tankDepth / 2 + 1, Math.min(tankDepth / 2 - 1, thisPos.z));
 
-    // Subtle "turn to direction of velocity"
     const prev = velocity.current.clone();
     velocity.current.subVectors(thisPos, prev);
     if (velocity.current.length() > 0.01) {
       let lookHere = new Vector3().copy(thisPos).add(velocity.current.clone().normalize());
       fish.lookAt(lookHere);
-      // add a gentle perlin "wobble" twist
       fish.rotation.z = Math.sin(t * 2.7 + index) * 0.17;
     }
 
-    // Gentle breathing/pulse
     const breath = 1 + Math.sin(t * 3 + index * 50) * 0.045;
     fish.scale.set(scale * 1, scale * 0.5 * breath, scale * 0.88);
   });
 
-  // Shape: body + tail, as before
   return (
     <group>
-      <mesh ref={fishRef as React.RefObject<Mesh>} scale={[1, 0.6, 0.5]}>
+      <mesh ref={internalRef} scale={[1, 0.6, 0.5]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial
           color={color}
@@ -118,7 +117,6 @@ export const Fish = forwardRef<Mesh, FishProps>(({
           roughness={0.36}
         />
       </mesh>
-      {/* Tail fin */}
       <mesh position={[0.4, 0, 0]} rotation={[0, 0, Math.PI]} scale={[0.38, 0.25, 0.16]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial
