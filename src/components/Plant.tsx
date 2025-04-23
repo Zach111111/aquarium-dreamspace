@@ -10,6 +10,7 @@ interface PlantProps {
   height?: number;
   width?: number;
   segments?: number;
+  audioLevel?: number; // Add the audioLevel prop to fix the TypeScript error
 }
 
 export function Plant({ 
@@ -17,7 +18,8 @@ export function Plant({
   color = '#B9FFCE', 
   height = 2, 
   width = 0.5,
-  segments = 3
+  segments = 3,
+  audioLevel = 0 // Default to 0 if not provided
 }: PlantProps) {
   const plantRef = useRef<Mesh>(null);
   const speedFactor = useAquariumStore(state => state.speedFactor);
@@ -30,8 +32,10 @@ export function Plant({
     
     // Steady, predictable movement based on global speed factor
     const baseSway = 0.05;
+    // Use audioLevel to slightly enhance the sway effect while maintaining stability
+    const swayAmplifier = 1 + (audioLevel || 0) * 0.2; // Small audio influence
     const swaySpeed = 0.8 * speedFactor;
-    const sway = Math.sin(time * swaySpeed) * baseSway;
+    const sway = Math.sin(time * swaySpeed) * baseSway * swayAmplifier;
     
     plantRef.current.rotation.z = sway;
   });
@@ -51,4 +55,3 @@ export function Plant({
     </group>
   );
 }
-
