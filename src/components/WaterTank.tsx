@@ -15,34 +15,17 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
   const toggleMenu = useAquariumStore(state => state.toggleMenu);
   const waterRef = useRef<THREE.Mesh>(null);
 
-  const pressTimer = useRef<NodeJS.Timeout | null>(null);
-  const isPressing = useRef(false);
-
+  // Basic interaction without timers for now
   const handlePointerDown = () => {
-    isPressing.current = true;
-    pressTimer.current = setTimeout(() => {
-      if (isPressing.current) {
-        toggleMenu();
-      }
-    }, 800);
-  };
-
-  const handlePointerUp = () => {
-    isPressing.current = false;
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-    }
+    toggleMenu();
   };
 
   useFrame(({ clock }) => {
     if (!waterRef.current) return;
-    // Simple animation for the water
+    // Very simple animation for the water
     const time = clock.getElapsedTime();
     waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.05;
   });
-
-  // Use simple material for stable rendering first
-  const useSimpleMaterial = true;
 
   // thickness for the glass walls
   const wallThickness = 0.25;
@@ -54,18 +37,16 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
         ref={waterRef}
         position={[0, 0, 0]}
         onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
       >
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial
+        <meshBasicMaterial
           color="#66ccff"
           transparent
           opacity={0.2}
           side={THREE.DoubleSide}
         />
       </mesh>
-      {/* Glass walls */}
+      {/* Glass walls - using basic material */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry
           args={[
@@ -74,14 +55,10 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
             depth + wallThickness,
           ]}
         />
-        <meshPhysicalMaterial
+        <meshBasicMaterial
           color="#F6F7FF"
           transparent
           opacity={0.2}
-          roughness={0.05}
-          metalness={0.0}
-          transmission={0.9}
-          thickness={0.25}
           side={THREE.BackSide}
         />
       </mesh>

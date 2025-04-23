@@ -9,6 +9,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const isMenuOpen = useAquariumStore(state => state.isMenuOpen);
+  const [debugMode] = useState(false); // Set to true to render a simple test div
   
   // Simulate loading progress
   useEffect(() => {
@@ -29,6 +30,10 @@ const Index = () => {
     
     return () => clearInterval(interval);
   }, []);
+
+  if (debugMode) {
+    return <div style={{color:'red', padding: '20px', fontSize: '24px'}}>HELLO WORLD DEBUG MODE</div>;
+  }
 
   return (
     <div className="h-screen w-screen overflow-hidden">
