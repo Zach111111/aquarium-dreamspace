@@ -12,7 +12,6 @@ interface SandFloorProps {
 export function SandFloor({ width, depth, resolution = 32 }: SandFloorProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   
-  // Generate heightmap for sand mounds
   const geometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(width, depth, resolution, resolution);
     const positions = geo.attributes.position.array;
@@ -20,7 +19,7 @@ export function SandFloor({ width, depth, resolution = 32 }: SandFloorProps) {
     for (let i = 0; i < positions.length; i += 3) {
       const x = positions[i];
       const z = positions[i + 2];
-      positions[i + 1] = noise2D(x * 0.5, z * 0.5) * 0.2; // Y position (height)
+      positions[i + 1] = noise2D(x * 0.5, z * 0.5) * 0.2;
     }
     
     geo.computeVertexNormals();
@@ -42,7 +41,7 @@ export function SandFloor({ width, depth, resolution = 32 }: SandFloorProps) {
       geometry={geometry} 
       material={material}
       rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, -3, 0]}
+      position={[0, -2.8, 0]}
       receiveShadow
     />
   );

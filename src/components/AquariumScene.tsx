@@ -1,4 +1,3 @@
-
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
 import { Suspense } from 'react';
@@ -10,13 +9,15 @@ import { WaterTank } from './WaterTank';
 import { Fish } from './Fish';
 import { Plant } from './Plant';
 import { Crystal } from './Crystal';
+import { SandFloor } from './SandFloor';
+import { ScoreDisplay } from './ScoreDisplay';
 import { toast } from "@/components/ui/use-toast";
 
 export function AquariumScene() {
   const orbitSpeed = useAquariumStore(state => state.orbitSpeed);
+  const incrementScore = useAquariumStore(state => state.incrementScore);
   const tankSize: [number, number, number] = [10, 6, 10];
 
-  // Generate consistent data for components
   const fishData = Array.from({ length: 5 }, (_, index) => ({
     scale: 0.7 + Math.random() * 0.6,
     speed: 0.5 + Math.random() * 1.5,
@@ -44,6 +45,14 @@ export function AquariumScene() {
     height: 0.8 + Math.random() * 1.2
   }));
 
+  const handleCrystalExplode = (position: [number, number, number]) => {
+    incrementScore();
+    toast({
+      title: "Crystal Collected!",
+      description: "A new fish has appeared in the tank.",
+    });
+  };
+
   const handleCanvasError = (event: React.SyntheticEvent) => {
     console.error("Canvas render error:", event);
     toast({
@@ -58,7 +67,7 @@ export function AquariumScene() {
       <Suspense fallback={<LoadingFallback />}>
         <Canvas 
           className="w-full h-full"
-          style={{ background: '#1A1F2C' }}
+          style={{ background: '#0a1a26' }}
           gl={{ 
             antialias: true,
             powerPreference: 'default',
@@ -79,7 +88,13 @@ export function AquariumScene() {
             minDistance={8}
           />
 
+          <ambientLight intensity={0.6} />
+          <directionalLight position={[5, 5, 5]} intensity={0.8} castShadow />
+          <hemisphereLight args={['#F6F7FF', '#A5F3FF', 0.6]} />
+
           <WaterTank size={tankSize} useSimpleMaterial={true}>
+            <SandFloor width={tankSize[0]} depth={tankSize[2]} />
+            
             {fishData.map((fish, i) => (
               <Fish
                 key={`fish-${i}`}
@@ -106,9 +121,12 @@ export function AquariumScene() {
                 rotation={crystal.rotation}
                 color={crystal.color}
                 height={crystal.height}
+                onExplode={handleCrystalExplode}
               />
             ))}
           </WaterTank>
+          
+          <ScoreDisplay />
         </Canvas>
       </Suspense>
     </ErrorBoundary>

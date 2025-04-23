@@ -1,5 +1,5 @@
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Vector3, MeshStandardMaterial } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
@@ -10,7 +10,7 @@ interface CrystalProps {
   height?: number;
   rotation?: [number, number, number];
   audioLevel?: number;
-  onExplode?: () => void;
+  onExplode?: (position: [number, number, number]) => void;
 }
 
 export function Crystal({ 
@@ -25,28 +25,37 @@ export function Crystal({
   const velocityRef = useRef(new Vector3(0, 0, 0));
   const [isExploding, setIsExploding] = useState(false);
   const colorShift = useAquariumStore(state => state.colorShift);
-  const incrementScore = useAquariumStore(state => state.incrementScore);
   const originalPosition = useRef(new Vector3(...position));
+  const floorY = -2.8; // Matches SandFloor position
   
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     if (!crystalRef.current) return;
     
     const time = clock.getElapsedTime();
     
     if (!isExploding) {
-      // Gentle bouncing motion
-      const bounceFactor = Math.sin(time * 2) * 0.05;
-      crystalRef.current.position.y = originalPosition.current.y + bounceFactor;
+      // Apply gravity and bouncing
+      velocityRef.current.y -= 9.8 * delta * 0.1; // Reduced gravity for underwater feel
+      crystalRef.current.position.y += velocityRef.current.y;
+      
+      // Bounce off floor
+      if (crystalRef.current.position.y <= floorY) {
+        crystalRef.current.position.y = floorY;
+        velocityRef.current.y = Math.abs(velocityRef.current.y) * 0.6; // Dampened bounce
+      }
+      
+      // Gentle floating motion
+      const floatOffset = Math.sin(time * 2) * 0.05;
+      crystalRef.current.position.y += floatOffset;
       
       // Slow rotation
       crystalRef.current.rotation.y += 0.01;
       
-      // Color shifting effect
       if (colorShift) {
-        const hueShift = (Math.sin(time * 0.5) + 1) * 0.5;
         const material = crystalRef.current.material as MeshStandardMaterial;
         if (material.emissive) {
-          material.emissive.setHSL(hueShift, 0.8, 0.5);
+          const hue = (Math.sin(time * 0.5) + 1) * 0.5;
+          material.emissive.setHSL(hue, 0.8, 0.5);
         }
       }
     }
@@ -56,14 +65,16 @@ export function Crystal({
     if (isExploding) return;
     
     setIsExploding(true);
-    incrementScore();
-    if (onExplode) onExplode();
+    if (onExplode && crystalRef.current) {
+      const pos = crystalRef.current.position.toArray() as [number, number, number];
+      onExplode(pos);
+    }
 
-    // Reset crystal after explosion
     setTimeout(() => {
       setIsExploding(false);
       if (crystalRef.current) {
         crystalRef.current.position.set(...position);
+        velocityRef.current.set(0, 0, 0);
       }
     }, 1000);
   };
