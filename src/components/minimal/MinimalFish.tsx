@@ -11,7 +11,9 @@ interface MinimalFishProps {
 export const MinimalFish = ({ tankSize, index }: MinimalFishProps) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const speed = 0.5 + Math.random() * 0.5;
-  const startPosition = [
+  
+  // Define as tuple with exactly 3 elements to satisfy TypeScript
+  const startPosition: [number, number, number] = [
     (Math.random() - 0.5) * 5,
     (Math.random() - 0.5) * 3,
     (Math.random() - 0.5) * 5
