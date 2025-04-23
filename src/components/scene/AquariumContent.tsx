@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useRef } from 'react';
+
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
@@ -22,14 +23,15 @@ const AquariumContent = () => {
   const orbitSpeed = useAquariumStore(state => state.orbitSpeed);
   const [fishWorldPositions, setFishWorldPositions] = useState<THREE.Vector3[]>([]);
   
-  // Updated: Use Group instead of Mesh for the fish refs
+  // Use Group for fish refs
   const fishRefs = useRef<Array<THREE.Group | null>>([]);
   
-  // Initialize the array with nulls
+  // Initialize with nulls
   useMemo(() => {
     fishRefs.current = Array(7).fill(null);
   }, []);
   
+  // Fish data
   const fishData = useMemo(() => {
     return Array.from({ length: 7 }, (_, index) => ({
       scale: 0.7 + Math.random() * 0.5,
@@ -38,6 +40,7 @@ const AquariumContent = () => {
     }));
   }, []);
 
+  // Plant positions
   const plantPositions = useMemo(() => {
     const positions: [number, number, number][] = [];
     const count = 5;
@@ -51,6 +54,7 @@ const AquariumContent = () => {
     return positions;
   }, [tankSize]);
 
+  // Kelp positions
   const kelpPositions = useMemo(() => {
     const positions: [number, number, number][] = [];
     positions.push([0, -tankSize[1] / 2 * 0.98, -tankSize[2] * 0.42]);
@@ -61,6 +65,7 @@ const AquariumContent = () => {
     return positions;
   }, [tankSize]);
 
+  // Crystal data
   const crystalData = useMemo(() => {
     const crystals = [];
     const count = 3;
@@ -83,25 +88,17 @@ const AquariumContent = () => {
     return crystals;
   }, [tankSize]);
 
-  // This is now safe to use inside the Canvas
+  // Three.js hooks with safer error handling
   const { raycaster, camera, mouse } = useThree();
   const planeXZ = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
   const intersectionPoint = useMemo(() => new THREE.Vector3(), []);
   
-  useFrame(() => {
+  // Track fish positions with error handling
+  const updateFishPositions = useCallback(() => {
     try {
-      // Mouse tracking
-      raycaster.setFromCamera(mouse, camera);
-      if (raycaster.ray.intersectPlane(planeXZ, intersectionPoint)) {
-        setMousePosition(intersectionPoint.clone());
-      } else {
-        setMousePosition(null);
-      }
+      const positions: THREE.Vector3[] = [];
       
-      // Fish position tracking - with proper error handling
       if (fishRefs.current) {
-        const positions: THREE.Vector3[] = [];
-        
         for (let i = 0; i < fishRefs.current.length; i++) {
           const fishRef = fishRefs.current[i];
           if (fishRef && fishRef.position) {
@@ -114,8 +111,24 @@ const AquariumContent = () => {
         }
       }
     } catch (error) {
+      console.error("Error updating fish positions:", error);
+    }
+  }, []);
+  
+  useFrame(() => {
+    try {
+      // Mouse tracking
+      raycaster.setFromCamera(mouse, camera);
+      if (raycaster.ray.intersectPlane(planeXZ, intersectionPoint)) {
+        setMousePosition(intersectionPoint.clone());
+      }
+      
+      // Update fish positions - less frequently to improve performance
+      if (Math.random() < 0.1) { // Only update 10% of frames
+        updateFishPositions();
+      }
+    } catch (error) {
       console.error("Frame update error:", error);
-      setMousePosition(null);
     }
   });
 
@@ -149,30 +162,26 @@ const AquariumContent = () => {
                   index={i}
                   audioLevel={0}
                   allFishPositions={fishWorldPositions}
-                  ref={(el) => {
-                    if (fishRefs.current) {
-                      fishRefs.current[i] = el;
-                    }
-                  }}
+                  ref={el => { fishRefs.current[i] = el; }}
                 />
               </ErrorBoundary>
             ))}
             
             {plantPositions.map((pos, i) => (
               <ErrorBoundary key={`plant-${i}`}>
-                <Plant key={i} position={pos} />
+                <Plant position={pos} />
               </ErrorBoundary>
             ))}
             
             {kelpPositions.map((pos, i) => (
               <ErrorBoundary key={`kelp-${i}`}>
-                <Kelp key={i} position={pos} height={2.6 + Math.random()*1.7} />
+                <Kelp position={pos} height={2.6 + Math.random()*1.7} />
               </ErrorBoundary>
             ))}
             
             {crystalData.map((crystal, i) => (
               <ErrorBoundary key={`crystal-${i}`}>
-                <Crystal key={i} {...crystal} />
+                <Crystal {...crystal} />
               </ErrorBoundary>
             ))}
           </WaterTank>

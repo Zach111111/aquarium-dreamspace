@@ -5,11 +5,10 @@ import { CanvasContainer } from './scene/CanvasContainer';
 import { DebugCube } from './scene/DebugCube';
 import { toast } from "@/components/ui/use-toast";
 
-// Modified component to show full scene by default
 export function AquariumScene() {
   const [showDebugCube, setShowDebugCube] = useState(false);
   const [renderAttempt, setRenderAttempt] = useState(0);
-  const [useSimpleMode, setUseSimpleMode] = useState(false); // show REAL tank by default
+  const [useSimpleMode, setUseSimpleMode] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -31,7 +30,7 @@ export function AquariumScene() {
       const timer = setTimeout(() => {
         console.log("Auto-recovery: forcing scene re-render");
         setRenderAttempt(0);
-        setUseSimpleMode(false); // Try to return to full scene after recovery
+        setUseSimpleMode(true); // Stay in simple mode after errors
       }, 5000);
       return () => clearTimeout(timer);
     }
@@ -40,7 +39,7 @@ export function AquariumScene() {
   const handleRenderError = () => {
     console.warn("Render error detected, incrementing render attempt counter");
     setRenderAttempt(prev => prev + 1);
-    setUseSimpleMode(true); // Only switch to fallback on error
+    setUseSimpleMode(true);
 
     toast({
       title: "Rendering Issue Detected",
@@ -52,22 +51,30 @@ export function AquariumScene() {
   return (
     <ErrorBoundary>
       <CanvasContainer onError={handleRenderError}>
-        {/* Try REAL scene, fallback to debug cube after error */}
-        {!useSimpleMode ? (
+        {useSimpleMode ? (
+          // Fallback: simple debug cube scene with water tank
           <React.Suspense fallback={null}>
-            {/* Import moved inside conditional to avoid errors */}
+            <ambientLight intensity={0.8} />
+            <pointLight position={[10, 10, 10]} intensity={1.5} />
+            <DebugCube visible={true} />
+            {/* Add minimal tank too */}
+            {React.createElement(
+              React.lazy(() => import('./WaterTank')),
+              { 
+                size: [8, 5, 8], 
+                useSimpleMaterial: true,
+                children: null
+              }
+            )}
+          </React.Suspense>
+        ) : (
+          // Try full aquarium content first
+          <React.Suspense fallback={null}>
             {React.createElement(
               React.lazy(() => import('./scene/AquariumContent')),
               { key: `content-${renderAttempt}` }
             )}
             <DebugCube visible={showDebugCube} />
-          </React.Suspense>
-        ) : (
-          // Fallback: simple debug cube scene
-          <React.Suspense fallback={null}>
-            <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} />
-            <DebugCube visible={true} />
           </React.Suspense>
         )}
       </CanvasContainer>
