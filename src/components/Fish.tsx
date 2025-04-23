@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Mesh, Vector3 } from 'three';
+import { Group, Mesh, Vector3 } from 'three';
 import { noise3D, random } from '../utils/noise';
 
 interface FishProps {
@@ -20,7 +20,7 @@ function lerpVec(target: Vector3, dest: Vector3, amt: number) {
   target.z += (dest.z - target.z) * amt;
 }
 
-export const Fish = forwardRef<Mesh, FishProps>(({
+export const Fish = forwardRef<Group, FishProps>(({
   color = '#A5F3FF',
   scale = 1,
   speed = 1,
@@ -29,10 +29,11 @@ export const Fish = forwardRef<Mesh, FishProps>(({
   audioLevel = 0,
   allFishPositions = [],
 }, ref) => {
-  const meshRef = useRef<Mesh>(null);
+  // Changed the type from Mesh to Group since we're returning a group element
+  const meshRef = useRef<Group>(null);
   
   // Properly handle the forwarded ref
-  useImperativeHandle(ref, () => meshRef.current as Mesh);
+  useImperativeHandle(ref, () => meshRef.current as Group);
 
   const velocity = useRef(new Vector3(random(-1, 1), random(-0.5, 0.5), random(-1, 1)));
   const targetPosition = useRef(new Vector3());
