@@ -7,10 +7,12 @@ import { Crystal } from './Crystal';
 import { Particles } from './Particles';
 import { ParticlesUpdater } from './ParticlesUpdater';
 import { PostProcessing } from './PostProcessing';
-import { audioManager } from '../utils/audio';
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
 import { toast } from "@/components/ui/use-toast";
+import { AquariumInitializer } from './scene/AquariumInitializer';
+import { PerformanceMonitor } from './scene/PerformanceMonitor';
+import { AudioLevelMonitor } from './scene/AudioLevelMonitor';
 
 interface AudioReactiveElementsProps {
   mousePosition: THREE.Vector3 | null;
