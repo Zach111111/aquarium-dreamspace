@@ -129,5 +129,25 @@
   }
 }
 
+/* Custom toast styling for more compact game notifications */
+.compact-toast {
+  max-width: 260px !important;
+  padding: 0.5rem 0.75rem !important;
+  border-width: 2px !important;
+  right: 15px !important;
+  animation: slide-in-out 2s forwards !important;
+}
+
+.compact-toast .rounded-md {
+  padding: 0.5rem !important;
+}
+
+@keyframes slide-in-out {
+  0% { transform: translateX(100%); opacity: 0; }
+  10% { transform: translateX(0); opacity: 1; }
+  90% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
 /* Import Orbitron font for PS2-style UI */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap');

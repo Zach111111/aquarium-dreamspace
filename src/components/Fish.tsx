@@ -1,8 +1,9 @@
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group, Vector3, MathUtils } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
+import { toast } from "@/components/ui/use-toast";
 
 interface FishProps {
   color?: string;
@@ -26,6 +27,8 @@ export function Fish({
   const fishRef = useRef<Group>(null);
   const speedFactor = useAquariumStore(state => state.speedFactor);
   const decrementScore = useAquariumStore(state => state.decrementScore);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
   
   // Calculate tank boundaries
   const [tankWidth, tankHeight, tankDepth] = tankSize;
@@ -80,41 +83,63 @@ export function Fish({
       fishRef.current.lookAt(fishRef.current.position.clone().add(direction));
       fishRef.current.rotation.z = Math.sin(time * 3 * speedFactor) * 0.2;
     }
+
+    // Reset click animation after short time
+    if (isClicked) {
+      setTimeout(() => setIsClicked(false), 300);
+    }
   });
 
-  const handleClick = (event: any) => {
-    event.stopPropagation();
-    event.preventDefault();
+  const handlePointerDown = () => {
     decrementScore();
+    setIsClicked(true);
+    toast({
+      title: "You touched a fish, oh no!",
+      description: "-1",
+      variant: "destructive",
+      className: "bg-[#1A1F2C] border-[#E5DEFF] text-[#E5DEFF]",
+    });
   };
+
+  // Visual feedback scale based on interaction state
+  const hoverScale = isHovered ? 1.1 : 1;
+  const clickScale = isClicked ? 0.9 : 1;
+  const interactionScale = hoverScale * clickScale;
 
   return (
     <group 
       ref={fishRef} 
       position={initialPosition.toArray()}
-      onClick={handleClick}
-      onPointerOver={() => document.body.style.cursor = 'pointer'}
-      onPointerOut={() => document.body.style.cursor = 'default'}
+      onPointerDown={handlePointerDown}
+      onPointerOver={() => {
+        document.body.style.cursor = 'pointer';
+        setIsHovered(true);
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = 'default';
+        setIsHovered(false);
+      }}
+      scale={[scale * interactionScale, scale * interactionScale, scale * interactionScale]}
     >
-      <mesh scale={[scale, scale * 0.6, scale * 0.5]}>
+      <mesh scale={[1, 0.6, 0.5]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 
-          color={color} 
+          color={isClicked ? '#ff6666' : color} 
           emissive={color} 
-          emissiveIntensity={0.2}
+          emissiveIntensity={isHovered ? 0.5 : 0.2}
           roughness={0.4}
         />
       </mesh>
       
       <mesh 
-        position={[-scale * 0.4, 0, 0]} 
-        scale={[scale * 0.4, scale * 0.3, scale * 0.2]}
+        position={[-0.4, 0, 0]} 
+        scale={[0.4, 0.3, 0.2]}
       >
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 
-          color={color} 
+          color={isClicked ? '#ff6666' : color} 
           emissive={color} 
-          emissiveIntensity={0.2}
+          emissiveIntensity={isHovered ? 0.5 : 0.2}
           roughness={0.4}
         />
       </mesh>

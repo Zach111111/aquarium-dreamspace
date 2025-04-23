@@ -1,3 +1,4 @@
+
 import { useRef, useState, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Vector3, MeshStandardMaterial } from 'three';
@@ -23,6 +24,7 @@ export function Crystal({
   const crystalRef = useRef<Mesh>(null);
   const velocityRef = useRef(new Vector3(0, 0, 0));
   const [isExploding, setIsExploding] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const colorShift = useAquariumStore(state => state.colorShift);
   const originalPosition = useRef(new Vector3(...position));
   const floorY = -2.8; // Matches SandFloor position
@@ -67,6 +69,13 @@ export function Crystal({
         const hue = (Math.sin(time * 0.5) + 1) * 0.5;
         material.emissive.setHSL(hue, 0.8, 0.5);
       }
+
+      // Hover effect - pulsing glow
+      if (isHovered && material.emissiveIntensity) {
+        material.emissiveIntensity = 0.3 + Math.sin(time * 6) * 0.3;
+      } else {
+        material.emissiveIntensity = 0.3;
+      }
     }
   });
 
@@ -87,8 +96,7 @@ export function Crystal({
     };
   }, [material]);
 
-  const handleClick = (event: any) => {
-    event.stopPropagation();
+  const handlePointerDown = () => {
     if (isExploding) return;
     
     setIsExploding(true);
@@ -100,6 +108,7 @@ export function Crystal({
     // Reset after animation
     setTimeout(() => {
       if (crystalRef.current) {
+        // Find a new position farther from the original position
         const randomPos: [number, number, number] = [
           (Math.random() - 0.5) * 8,  // Random X within tank
           -1 + Math.random() * 2,     // Random Y above floor
@@ -111,23 +120,29 @@ export function Crystal({
     }, 1000);
   };
 
+  // Visual feedback scale based on hover state
+  const hoverScale = isHovered ? 1.1 : 1;
+  const explodeScale = isExploding ? 1.5 : 1;
+  const finalScale = hoverScale * explodeScale;
+
   return (
     <mesh
       ref={crystalRef}
       position={position}
       rotation={rotation}
-      onClick={handleClick}
-      onPointerOver={() => document.body.style.cursor = 'pointer'}
-      onPointerOut={() => document.body.style.cursor = 'default'}
+      onPointerDown={handlePointerDown}
+      onPointerOver={() => {
+        document.body.style.cursor = 'pointer';
+        setIsHovered(true);
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = 'default';
+        setIsHovered(false);
+      }}
+      scale={[finalScale, finalScale, finalScale]}
     >
       <octahedronGeometry args={[0.5, 0]} />
-      <meshStandardMaterial
-        color={color}
-        emissive={color}
-        emissiveIntensity={isExploding ? 1 : 0.3}
-        transparent
-        opacity={isExploding ? 0.5 : 1}
-      />
+      <primitive object={material} />
     </mesh>
   );
 }
