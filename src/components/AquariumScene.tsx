@@ -94,13 +94,15 @@ const AquariumContent = () => {
         setMousePosition(null);
       }
       
-      // Fish position tracking - avoid accessing when refs aren't initialized
+      // Fish position tracking - safeguard against undefined
       if (fishRefs.current && fishRefs.current.length > 0) {
         const positions = fishRefs.current
           .map(mesh => (mesh ? mesh.position.clone() : null))
           .filter((pos): pos is THREE.Vector3 => pos !== null);
         
-        setFishWorldPositions(positions);
+        if (positions.length > 0) {
+          setFishWorldPositions(positions);
+        }
       }
     } catch (error) {
       console.error("Frame update error:", error);
@@ -128,26 +130,38 @@ const AquariumContent = () => {
         <Suspense fallback={<LoadingFallback />}>
           <WaterTank size={tankSize} audioLevel={0}>
             {fishData.map((fish, i) => (
-              <Fish
-                key={i}
-                color={fish.color}
-                scale={fish.scale}
-                speed={fish.speed}
-                tankSize={tankSize}
-                index={i}
-                audioLevel={0}
-                allFishPositions={fishWorldPositions}
-                ref={el => { fishRefs.current[i] = el; }}
-              />
+              <ErrorBoundary key={`fish-${i}`}>
+                <Fish
+                  key={i}
+                  color={fish.color}
+                  scale={fish.scale}
+                  speed={fish.speed}
+                  tankSize={tankSize}
+                  index={i}
+                  audioLevel={0}
+                  allFishPositions={fishWorldPositions}
+                  ref={el => { 
+                    if (fishRefs.current) {
+                      fishRefs.current[i] = el; 
+                    }
+                  }}
+                />
+              </ErrorBoundary>
             ))}
             {plantPositions.map((pos, i) => (
-              <Plant key={i} position={pos} />
+              <ErrorBoundary key={`plant-${i}`}>
+                <Plant key={i} position={pos} />
+              </ErrorBoundary>
             ))}
             {kelpPositions.map((pos, i) => (
-              <Kelp key={i} position={pos} height={2.6 + Math.random()*1.7} />
+              <ErrorBoundary key={`kelp-${i}`}>
+                <Kelp key={i} position={pos} height={2.6 + Math.random()*1.7} />
+              </ErrorBoundary>
             ))}
             {crystalData.map((crystal, i) => (
-              <Crystal key={i} {...crystal} />
+              <ErrorBoundary key={`crystal-${i}`}>
+                <Crystal key={i} {...crystal} />
+              </ErrorBoundary>
             ))}
           </WaterTank>
           <Particles
@@ -222,20 +236,23 @@ export function AquariumScene() {
         style={{ background: '#1A1F2C' }}
         gl={{ 
           antialias: true,
-          powerPreference: 'default',
+          powerPreference: 'high-performance',
           alpha: false,
           stencil: false,
           depth: true,
         }}
-        dpr={[1, 1.5]}
+        dpr={[0.6, 1.0]} 
+        performance={{ min: 0.5 }}
+        frameloop="demand"
         onCreated={({ gl }) => {
           gl.setClearColor(new THREE.Color('#1A1F2C'));
+          console.log("Canvas created successfully");
         }}
         onError={handleCanvasError}
       >
         <React.Suspense fallback={<LoadingFallback />}>
           <AquariumContent />
-          {showDebugCube && <DebugCube visible={true} />}
+          <DebugCube visible={showDebugCube} />
         </React.Suspense>
       </Canvas>
     </ErrorBoundary>

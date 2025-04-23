@@ -4,6 +4,7 @@ import { AquariumScene } from '../components/AquariumScene';
 import { VHSOverlay } from '../components/VHSOverlay';
 import { ExploreMenu } from '../components/ExploreMenu';
 import { useAquariumStore } from '../store/aquariumStore';
+import { toast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -23,6 +24,13 @@ const Index = () => {
         // Delay to show 100% before removing loading screen
         setTimeout(() => {
           setIsLoading(false);
+          console.log("Loading complete, showing aquarium scene");
+          
+          // Notify when scene is ready to render
+          toast({
+            title: "Aquarium Ready",
+            description: "Welcome to the Aquarium Dreamspace!"
+          });
         }, 500);
       }
       setLoadingProgress(progress);
@@ -30,6 +38,32 @@ const Index = () => {
     
     return () => clearInterval(interval);
   }, []);
+
+  // Add error handling for WebGL support
+  useEffect(() => {
+    const checkWebGL = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        return !!(window.WebGLRenderingContext && 
+          (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+      } catch (e) {
+        return false;
+      }
+    };
+    
+    if (!checkWebGL()) {
+      toast({
+        title: "WebGL Not Supported",
+        description: "Your browser doesn't support 3D graphics. Try a different browser.",
+        variant: "destructive"
+      });
+    }
+  }, []);
+
+  const skipLoading = () => {
+    setIsLoading(false);
+    console.log("Loading skipped, showing aquarium scene");
+  };
 
   if (debugMode) {
     return <div style={{color:'red', padding: '20px', fontSize: '24px'}}>HELLO WORLD DEBUG MODE</div>;
@@ -68,9 +102,12 @@ const Index = () => {
             LOADING ASSETS...
           </div>
           
-          <div className="mt-8 text-xs text-aquarium-white/50">
+          <button 
+            onClick={skipLoading}
+            className="mt-8 text-xs text-aquarium-white/50 hover:text-aquarium-white/80 transition-colors"
+          >
             PRESS ANY KEY TO START
-          </div>
+          </button>
         </div>
       ) : (
         // Main aquarium scene

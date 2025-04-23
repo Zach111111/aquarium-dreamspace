@@ -11,6 +11,7 @@ interface KelpProps {
   swayScale?: number;
   audioLevel?: number;
 }
+
 export function Kelp({
   position,
   color = '#39FF96',
@@ -57,4 +58,5 @@ export function Kelp({
     </group>
   );
 }
+
 Kelp.displayName = 'Kelp';
