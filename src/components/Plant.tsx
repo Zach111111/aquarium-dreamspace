@@ -4,22 +4,12 @@ import { useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
 
-interface PlantProps {
-  position: [number, number, number];
-  color?: string;
-  height?: number;
-  width?: number;
-  segments?: number;
-  audioLevel?: number;
-}
-
 export function Plant({ 
   position, 
   color = '#B9FFCE', 
   height = 2, 
   width = 0.5,
-  segments = 3,
-  audioLevel = 0 
+  segments = 3
 }: PlantProps) {
   const plantRef = useRef<Mesh>(null);
   const speedFactor = useAquariumStore(state => state.speedFactor);
@@ -38,7 +28,6 @@ export function Plant({
     plantRef.current.rotation.z = sway;
   });
 
-  // Ensure plant is visible on load with improved geometry
   return (
     <group position={position}>
       <mesh ref={plantRef} position={[0, height/2, 0]}>
@@ -54,5 +43,3 @@ export function Plant({
     </group>
   );
 }
-
-Plant.displayName = 'Plant';

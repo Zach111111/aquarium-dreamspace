@@ -1,4 +1,3 @@
-
 import { useAquariumStore } from '../store/aquariumStore';
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
