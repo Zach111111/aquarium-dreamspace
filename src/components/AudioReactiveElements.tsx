@@ -33,7 +33,7 @@ export function AudioReactiveElements({
 }: AudioReactiveElementsProps) {
   const [audioLevels, setAudioLevels] = useState({ bass: 0, mid: 0, treble: 0 });
 
-  // Reduced update frequency to improve performance
+  // Safe audio processing
   useFrame(() => {
     try {
       const levels = audioManager.getAudioLevels();
@@ -47,8 +47,8 @@ export function AudioReactiveElements({
 
   return (
     <WaterTank size={tankSize} audioLevel={audioLevels.bass}>
-      {/* Generate fish - limit to fewer fish for now */}
-      {fishData.slice(0, 4).map((fish, i) => (
+      {/* Start with fewer fish for stability */}
+      {fishData.slice(0, 3).map((fish, i) => (
         <Fish
           key={`fish-${i}`}
           color={fish.color}
@@ -60,7 +60,7 @@ export function AudioReactiveElements({
         />
       ))}
 
-      {/* Generate plants - limit to fewer plants for now */}
+      {/* Start with fewer plants for stability */}
       {plantPositions.slice(0, 2).map((position, i) => (
         <Plant
           key={`plant-${i}`}
@@ -72,7 +72,7 @@ export function AudioReactiveElements({
         />
       ))}
 
-      {/* Generate crystals - limit to fewer crystals for now */}
+      {/* Start with fewer crystals for stability */}
       {crystalData.slice(0, 1).map((crystal, i) => (
         <Crystal
           key={`crystal-${i}`}
@@ -85,15 +85,15 @@ export function AudioReactiveElements({
         />
       ))}
 
-      {/* Particles - reduce count for now */}
+      {/* Reduced particle count for better performance */}
       <Particles
-        count={50}
+        count={25}
         tankSize={tankSize}
         mousePosition={mousePosition}
         audioLevel={audioLevels.bass}
       />
 
-      {/* Disabled post-processing for now */}
+      {/* Re-enable post-processing with minimal settings */}
       <PostProcessing audioLevel={audioLevels.bass} />
     </WaterTank>
   );

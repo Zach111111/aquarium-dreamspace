@@ -7,12 +7,12 @@ interface PostProcessingProps {
 }
 
 export function PostProcessing({ audioLevel = 0 }: PostProcessingProps) {
-  // Extremely simplified post-processing to avoid WebGL context loss
+  // Start with minimal post-processing to ensure stability
   return (
-    <EffectComposer enabled={false}>
-      {/* Disabled Bloom until we fix the base rendering */}
+    <EffectComposer enabled={true} multisampling={0}>
+      {/* Bloom with minimal settings */}
       <Bloom 
-        intensity={0.3} 
+        intensity={0.2} 
         luminanceThreshold={0.4} 
         luminanceSmoothing={0.9} 
         kernelSize={KernelSize.SMALL}
