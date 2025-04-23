@@ -33,8 +33,8 @@ export function Plant({
     // Steady, predictable movement based on global speed factor
     const baseSway = 0.05;
     const swaySpeed = 0.8 * speedFactor;
-    // Careful audio influence that won't cause undefined property issues
-    const sway = Math.sin(time * swaySpeed) * baseSway * (1 + Math.min(audioLevel || 0, 1) * 0.2);
+    // Simple sway without audio influence to avoid errors
+    const sway = Math.sin(time * swaySpeed) * baseSway;
     
     plantRef.current.rotation.z = sway;
   });

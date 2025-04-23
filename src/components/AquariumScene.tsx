@@ -79,7 +79,7 @@ export function AquariumScene() {
             minDistance={8}
           />
 
-          <WaterTank size={tankSize}>
+          <WaterTank size={tankSize} useSimpleMaterial={true}>
             {fishData.map((fish, i) => (
               <Fish
                 key={`fish-${i}`}

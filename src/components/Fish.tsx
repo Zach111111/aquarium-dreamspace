@@ -1,4 +1,5 @@
-import { useRef, useEffect } from 'react';
+
+import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Vector3, MathUtils } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
@@ -20,7 +21,6 @@ export function Fish({
   audioLevel = 0
 }: FishProps) {
   const fishRef = useRef<Mesh>(null);
-  const targetPosition = useRef(new Vector3());
   const speedFactor = useAquariumStore(state => state.speedFactor);
   
   // Memoize boundaries
@@ -42,32 +42,31 @@ export function Fish({
     const fishIndex = index + 1;
     
     // Update position with speed factor and boundaries
-    fish.position.x = MathUtils.clamp(
-      fish.position.x + Math.sin(time * 2 * speedFactor + fishIndex) * 0.003 * speedFactor,
-      bounds.minX,
-      bounds.maxX
-    );
-    fish.position.y = MathUtils.clamp(
-      fish.position.y + Math.cos(time * 1.5 * speedFactor + fishIndex) * 0.002 * speedFactor,
-      bounds.minY,
-      bounds.maxY
-    );
-    fish.position.z = MathUtils.clamp(
-      fish.position.z,
-      bounds.minZ,
-      bounds.maxZ
-    );
+    const newX = fish.position.x + Math.sin(time * 2 * speedFactor + fishIndex) * 0.003 * speedFactor;
+    const newY = fish.position.y + Math.cos(time * 1.5 * speedFactor + fishIndex) * 0.002 * speedFactor;
+    
+    // Apply position changes with boundary checks
+    fish.position.x = MathUtils.clamp(newX, bounds.minX, bounds.maxX);
+    fish.position.y = MathUtils.clamp(newY, bounds.minY, bounds.maxY);
+    fish.position.z = MathUtils.clamp(fish.position.z, bounds.minZ, bounds.maxZ);
     
     // Fish rotation and breathing animation
     fish.rotation.z = Math.sin(time * 3 * speedFactor + fishIndex) * 0.2;
+    fish.rotation.y = Math.atan2(
+      Math.sin(time * 2 * speedFactor + fishIndex),
+      Math.cos(time * 1.5 * speedFactor + fishIndex)
+    );
+    
     const breathScale = 1 + Math.sin(time * 5 * speedFactor + fishIndex) * 0.05;
-    fish.scale.set(scale, scale * breathScale, scale);
+    if (typeof scale === 'number') {
+      fish.scale.set(scale, scale * breathScale, scale);
+    }
   });
 
   return (
     <group>
       {/* Fish body */}
-      <mesh ref={fishRef} scale={[1, 0.6, 0.5]}>
+      <mesh ref={fishRef} scale={[scale, scale * 0.6, scale * 0.5]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 
           color={color} 
@@ -78,7 +77,7 @@ export function Fish({
       </mesh>
       
       {/* Fish tail */}
-      <mesh position={[0.4, 0, 0]} rotation={[0, 0, Math.PI]} scale={[0.4, 0.3, 0.2]}>
+      <mesh position={[scale * 0.4, 0, 0]} rotation={[0, 0, Math.PI]} scale={[scale * 0.4, scale * 0.3, scale * 0.2]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 
           color={color} 
