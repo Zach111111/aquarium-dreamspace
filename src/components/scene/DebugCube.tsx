@@ -1,5 +1,6 @@
 
 import React from 'react';
+import * as THREE from 'three';
 
 interface DebugCubeProps {
   visible?: boolean;
@@ -8,6 +9,7 @@ interface DebugCubeProps {
 export function DebugCube({ visible = false }: DebugCubeProps) {
   if (!visible) return null;
   
+  // Using simpler MeshBasicMaterial to avoid any material-related issues
   return (
     <mesh position={[0, 0, 0]}>
       <boxGeometry args={[1, 1, 1]} />

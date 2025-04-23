@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/use-toast";
 // Main wrapper component
 export function AquariumScene() {
   const [showDebugCube, setShowDebugCube] = useState(false);
+  const [renderAttempt, setRenderAttempt] = useState(0);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -25,10 +26,26 @@ export function AquariumScene() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showDebugCube]);
 
+  // Add an auto-recovery mechanism
+  useEffect(() => {
+    if (renderAttempt > 0) {
+      const timer = setTimeout(() => {
+        console.log("Auto-recovery: forcing scene re-render");
+        setRenderAttempt(0); // Reset to trigger re-render
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [renderAttempt]);
+
+  const handleRenderError = () => {
+    console.warn("Render error detected, incrementing render attempt counter");
+    setRenderAttempt(prev => prev + 1);
+  };
+
   return (
     <ErrorBoundary>
-      <CanvasContainer>
-        <AquariumContent />
+      <CanvasContainer onError={handleRenderError}>
+        <AquariumContent key={`content-${renderAttempt}`} />
         <DebugCube visible={showDebugCube} />
       </CanvasContainer>
     </ErrorBoundary>

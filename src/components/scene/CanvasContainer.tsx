@@ -42,17 +42,27 @@ export function CanvasContainer({ children, onError }: CanvasContainerProps) {
       style={{ background: '#1A1F2C' }}
       gl={{ 
         antialias: true,
-        powerPreference: 'high-performance',
+        powerPreference: 'default', // Changed from 'high-performance' to be more compatible
         alpha: false,
         stencil: false,
         depth: true,
+        precision: "highp"
       }}
-      dpr={[0.6, 1.0]} 
-      performance={{ min: 0.5 }}
-      frameloop="demand"
+      dpr={[0.5, 0.8]} // Reduced DPR for better performance
+      frameloop="always" // Changed from "demand" to ensure continuous rendering
       onCreated={({ gl }) => {
         gl.setClearColor(new THREE.Color('#1A1F2C'));
         console.log("Canvas created successfully");
+        
+        // Add context loss handler
+        gl.domElement.addEventListener('webglcontextlost', (e) => {
+          e.preventDefault();
+          console.warn("WebGL context lost");
+        });
+        
+        gl.domElement.addEventListener('webglcontextrestored', () => {
+          console.log("WebGL context restored");
+        });
       }}
       onError={handleCanvasError}
     >

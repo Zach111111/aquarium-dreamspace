@@ -1,4 +1,5 @@
-import { useRef, useEffect, forwardRef } from 'react';
+
+import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Vector3 } from 'three';
 import { noise3D, random } from '../utils/noise';
@@ -28,19 +29,10 @@ export const Fish = forwardRef<Mesh, FishProps>(({
   audioLevel = 0,
   allFishPositions = [],
 }, ref) => {
-  const internalRef = useRef<Mesh>(null);
-  const meshRef = useRef<Mesh | null>(null);
-
-  useEffect(() => {
-    if (typeof ref === 'function') {
-      if (internalRef.current) {
-        ref(internalRef.current);
-      }
-    } else if (ref) {
-      ref.current = internalRef.current;
-    }
-    meshRef.current = internalRef.current;
-  }, [ref]);
+  const meshRef = useRef<Mesh>(null);
+  
+  // Properly handle the forwarded ref
+  useImperativeHandle(ref, () => meshRef.current as Mesh);
 
   const velocity = useRef(new Vector3(random(-1, 1), random(-0.5, 0.5), random(-1, 1)));
   const targetPosition = useRef(new Vector3());
@@ -60,11 +52,12 @@ export const Fish = forwardRef<Mesh, FishProps>(({
 
   useFrame(({ clock }) => {
     if (!meshRef.current) return;
+    
     const [tankWidth, tankHeight, tankDepth] = tankSize;
     const t = clock.getElapsedTime();
     const fish = meshRef.current;
     const thisPos = fish.position;
-    let target = new Vector3().copy(targetPosition.current);
+    const target = new Vector3().copy(targetPosition.current);
 
     const noiseScale = 0.45;
     target.x += noise3D(index * 10 + 10, 0, t * 0.25) * noiseScale * 3;
@@ -72,8 +65,9 @@ export const Fish = forwardRef<Mesh, FishProps>(({
     target.z += noise3D(0, 0, t * 0.23 + index * 5) * noiseScale * 3;
 
     if (allFishPositions && allFishPositions.length > 2) {
-      let avg = new Vector3();
+      const avg = new Vector3();
       let neighborCount = 0;
+      
       allFishPositions.forEach((pos, i) => {
         if (i !== index && pos) {
           if (thisPos.distanceTo(pos) < 3.5) {
@@ -82,8 +76,9 @@ export const Fish = forwardRef<Mesh, FishProps>(({
           }
         }
       });
+      
       if (neighborCount > 0) {
-        avg.multiplyScalar(1 / neighborCount);
+        avg.divideScalar(neighborCount);
         target.lerp(avg, 0.25 * (1 - soloTendency.current));
       }
     }
@@ -97,7 +92,7 @@ export const Fish = forwardRef<Mesh, FishProps>(({
     const prev = velocity.current.clone();
     velocity.current.subVectors(thisPos, prev);
     if (velocity.current.length() > 0.01) {
-      let lookHere = new Vector3().copy(thisPos).add(velocity.current.clone().normalize());
+      const lookHere = new Vector3().copy(thisPos).add(velocity.current.normalize());
       fish.lookAt(lookHere);
       fish.rotation.z = Math.sin(t * 2.7 + index) * 0.17;
     }
@@ -107,8 +102,8 @@ export const Fish = forwardRef<Mesh, FishProps>(({
   });
 
   return (
-    <group>
-      <mesh ref={internalRef} scale={[1, 0.6, 0.5]}>
+    <group ref={meshRef}>
+      <mesh scale={[1, 0.6, 0.5]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial
           color={color}

@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
@@ -22,7 +22,14 @@ const AquariumContent = () => {
   const tankSize: [number, number, number] = [10, 6, 10];
   const orbitSpeed = useAquariumStore(state => state.orbitSpeed);
   const [fishWorldPositions, setFishWorldPositions] = useState<THREE.Vector3[]>([]);
-  const fishRefs = React.useRef<(THREE.Mesh | null)[]>([]);
+  
+  // Use a ref to store fish mesh references
+  const fishRefs = useRef<Array<THREE.Mesh | null>>([]);
+  
+  // Initialize the array with nulls
+  useMemo(() => {
+    fishRefs.current = Array(7).fill(null);
+  }, []);
   
   const fishData = useMemo(() => {
     return Array.from({ length: 7 }, (_, index) => ({
@@ -92,11 +99,16 @@ const AquariumContent = () => {
         setMousePosition(null);
       }
       
-      // Fish position tracking - safeguard against undefined
-      if (fishRefs.current && fishRefs.current.length > 0) {
-        const positions = fishRefs.current
-          .map(mesh => (mesh ? mesh.position.clone() : null))
-          .filter((pos): pos is THREE.Vector3 => pos !== null);
+      // Fish position tracking - with proper error handling
+      if (fishRefs.current) {
+        const positions: THREE.Vector3[] = [];
+        
+        for (let i = 0; i < fishRefs.current.length; i++) {
+          const fishRef = fishRefs.current[i];
+          if (fishRef && fishRef.position) {
+            positions.push(fishRef.position.clone());
+          }
+        }
         
         if (positions.length > 0) {
           setFishWorldPositions(positions);
@@ -138,36 +150,41 @@ const AquariumContent = () => {
                   index={i}
                   audioLevel={0}
                   allFishPositions={fishWorldPositions}
-                  ref={el => { 
+                  ref={(el) => {
                     if (fishRefs.current) {
-                      fishRefs.current[i] = el; 
+                      fishRefs.current[i] = el;
                     }
                   }}
                 />
               </ErrorBoundary>
             ))}
+            
             {plantPositions.map((pos, i) => (
               <ErrorBoundary key={`plant-${i}`}>
                 <Plant key={i} position={pos} />
               </ErrorBoundary>
             ))}
+            
             {kelpPositions.map((pos, i) => (
               <ErrorBoundary key={`kelp-${i}`}>
                 <Kelp key={i} position={pos} height={2.6 + Math.random()*1.7} />
               </ErrorBoundary>
             ))}
+            
             {crystalData.map((crystal, i) => (
               <ErrorBoundary key={`crystal-${i}`}>
                 <Crystal key={i} {...crystal} />
               </ErrorBoundary>
             ))}
           </WaterTank>
+          
           <Particles
             tankSize={tankSize}
             mousePosition={mousePosition}
             count={42}
             audioLevel={0}
           />
+          
           <PostProcessing audioLevel={0} />
         </React.Suspense>
       </ErrorBoundary>
