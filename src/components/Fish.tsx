@@ -1,4 +1,5 @@
-import { useRef, useEffect } from 'react';
+
+import { useRef, useEffect, forwardRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Vector3 } from 'three';
 import { noise3D, random } from '../utils/noise';
@@ -19,7 +20,7 @@ function lerpVec(target: Vector3, dest: Vector3, amt: number) {
   target.z += (dest.z - target.z) * amt;
 }
 
-export function Fish({
+export const Fish = forwardRef<Mesh, FishProps>(({
   color = '#A5F3FF',
   scale = 1,
   speed = 1,
@@ -27,8 +28,9 @@ export function Fish({
   index,
   audioLevel = 0,
   allFishPositions = [],
-}: FishProps) {
-  const fishRef = useRef<Mesh>(null);
+}, ref) => {
+  const internalRef = useRef<Mesh>(null);
+  const fishRef = ref || internalRef;
   const velocity = useRef(new Vector3(random(-1, 1), random(-0.5, 0.5), random(-1, 1)));
   const targetPosition = useRef(new Vector3());
   const soloTendency = useRef(Math.random() * 0.7 + 0.3); // blend between group & solo
@@ -107,7 +109,7 @@ export function Fish({
   // Shape: body + tail, as before
   return (
     <group>
-      <mesh ref={fishRef} scale={[1, 0.6, 0.5]}>
+      <mesh ref={fishRef as React.RefObject<Mesh>} scale={[1, 0.6, 0.5]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial
           color={color}
@@ -128,6 +130,6 @@ export function Fish({
       </mesh>
     </group>
   );
-}
+});
 
 Fish.displayName = 'Fish';
