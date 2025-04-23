@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -11,7 +10,7 @@ interface WaterTankProps {
   useSimpleMaterial?: boolean;
 }
 
-export function WaterTank({ 
+function WaterTank({ 
   size = [5, 4, 5], 
   children, 
   audioLevel = 0,
@@ -22,7 +21,6 @@ export function WaterTank({
   const waterRef = useRef<THREE.Mesh>(null);
   const glassRef = useRef<THREE.Mesh>(null);
   
-  // Performance monitoring
   useEffect(() => {
     let frameCount = 0;
     let lastTime = performance.now();
@@ -37,7 +35,6 @@ export function WaterTank({
         frameCount = 0;
         lastTime = now;
         
-        // If FPS drops below threshold, switch to simple materials
         if (fps < 30 && !useSimpleMaterial) {
           console.log('Low performance detected, switching to simple materials');
         }
@@ -51,7 +48,6 @@ export function WaterTank({
     return () => cancelAnimationFrame(handle);
   }, [useSimpleMaterial]);
 
-  // Basic interaction with safe error handling
   const handlePointerDown = () => {
     try {
       toggleMenu();
@@ -60,16 +56,13 @@ export function WaterTank({
     }
   };
 
-  // Update animation on each frame
   useFrame(({ clock }) => {
     if (!waterRef.current) return;
     
     try {
-      // Simple water animation
       const time = clock.getElapsedTime();
       waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.05;
       
-      // Audio-reactive water movement
       if (audioLevel > 0.1) {
         waterRef.current.position.y = Math.sin(time * 2) * audioLevel * 0.2;
       }
@@ -78,7 +71,6 @@ export function WaterTank({
     }
   });
 
-  // Create materials
   const waterMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
       color: "#66ccff",
@@ -96,12 +88,10 @@ export function WaterTank({
     });
   }, []);
 
-  // thickness for the glass walls
   const wallThickness = 0.25;
 
   return (
     <group>
-      {/* Water volume */}
       <mesh
         ref={waterRef}
         position={[0, 0, 0]}
@@ -111,7 +101,6 @@ export function WaterTank({
         <primitive object={waterMaterial} attach="material" />
       </mesh>
       
-      {/* Glass walls */}
       <mesh 
         ref={glassRef}
         position={[0, 0, 0]}
@@ -126,7 +115,6 @@ export function WaterTank({
         <primitive object={glassMaterial} attach="material" />
       </mesh>
       
-      {/* Tank contents */}
       <group position={[0, 0, 0]}>
         {children}
       </group>
@@ -135,3 +123,5 @@ export function WaterTank({
 }
 
 WaterTank.displayName = 'WaterTank';
+
+export default WaterTank;

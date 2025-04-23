@@ -5,6 +5,9 @@ import { CanvasContainer } from './scene/CanvasContainer';
 import { DebugCube } from './scene/DebugCube';
 import { toast } from "@/components/ui/use-toast";
 
+// Import WaterTank for direct use without lazy loading (to avoid TypeScript issues)
+import WaterTank from './WaterTank';
+
 export function AquariumScene() {
   const [showDebugCube, setShowDebugCube] = useState(false);
   const [renderAttempt, setRenderAttempt] = useState(0);
@@ -48,6 +51,9 @@ export function AquariumScene() {
     });
   };
 
+  // Create a memoized lazy-loaded AquariumContent component
+  const LazyAquariumContent = React.lazy(() => import('./scene/AquariumContent'));
+
   return (
     <ErrorBoundary>
       <CanvasContainer onError={handleRenderError}>
@@ -57,23 +63,15 @@ export function AquariumScene() {
             <ambientLight intensity={0.8} />
             <pointLight position={[10, 10, 10]} intensity={1.5} />
             <DebugCube visible={true} />
-            {/* Add minimal tank too */}
-            {React.createElement(
-              React.lazy(() => import('./WaterTank')),
-              { 
-                size: [8, 5, 8], 
-                useSimpleMaterial: true,
-                children: null
-              }
-            )}
+            <WaterTank 
+              size={[8, 5, 8]} 
+              useSimpleMaterial={true} 
+            />
           </React.Suspense>
         ) : (
           // Try full aquarium content first
           <React.Suspense fallback={null}>
-            {React.createElement(
-              React.lazy(() => import('./scene/AquariumContent')),
-              { key: `content-${renderAttempt}` }
-            )}
+            <LazyAquariumContent key={`content-${renderAttempt}`} />
             <DebugCube visible={showDebugCube} />
           </React.Suspense>
         )}
