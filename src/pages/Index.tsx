@@ -4,12 +4,14 @@ import { AquariumScene } from '../components/AquariumScene';
 import { VHSOverlay } from '../components/VHSOverlay';
 import { ExploreMenu } from '../components/ExploreMenu';
 import { MenuButton } from '../components/MenuButton';
+import { WinScreen } from '../components/WinScreen';
 import { useAquariumStore } from '../store/aquariumStore';
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const isMenuOpen = useAquariumStore(state => state.isMenuOpen);
+  const gameWon = useAquariumStore(state => state.gameWon);
   const [debugMode] = useState(false);
 
   useEffect(() => {
@@ -68,6 +70,8 @@ const Index = () => {
           <VHSOverlay />
           <MenuButton />
           <ExploreMenu isVisible={isMenuOpen} />
+          
+          {gameWon && <WinScreen />}
           
           <div className="absolute top-5 left-5 text-aquarium-white z-10">
             <h1 className="text-xl font-bold tracking-wider bg-black/30 px-3 py-1 rounded">
