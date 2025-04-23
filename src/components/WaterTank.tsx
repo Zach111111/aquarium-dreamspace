@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { useFrame, extend, Object3DNode } from '@react-three/fiber';
+import { useFrame, extend } from '@react-three/fiber';
 import * as THREE from 'three';
 import { shaderMaterial } from '@react-three/drei';
 import { useAquariumStore } from '../store/aquariumStore';
@@ -58,6 +58,10 @@ const WaterShaderMaterial = shaderMaterial(
   `
 );
 
+// Add material properties that are needed for our shader material
+WaterShaderMaterial.prototype.transparent = true;
+WaterShaderMaterial.prototype.side = THREE.DoubleSide;
+
 // Extend to make it available in JSX
 extend({ WaterShaderMaterial });
 
@@ -65,7 +69,11 @@ extend({ WaterShaderMaterial });
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      waterShaderMaterial: Object3DNode<typeof WaterShaderMaterial, typeof THREE.ShaderMaterial>;
+      waterShaderMaterial: JSX.IntrinsicElements['shaderMaterial'] & {
+        time?: number;
+        color?: THREE.Color;
+        opacity?: number;
+      };
     }
   }
 }
@@ -212,8 +220,8 @@ export function WaterTank({
         ) : (
           <waterShaderMaterial 
             ref={waterShaderRef}
-            transparent
-            side={THREE.DoubleSide}
+            time={0}
+            color={new THREE.Color('#66ccff')}
             opacity={0.6}
           />
         )}
