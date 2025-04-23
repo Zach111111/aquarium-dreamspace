@@ -167,9 +167,16 @@ export function AquariumScene() {
         depth: true,
         alpha: false,
         stencil: false,
+        powerPreference: 'high-performance',
       }}
     >
       <Suspense fallback={<LoadingFallback />}>
+        {/* Debug cube to verify rendering works */}
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial color="hotpink" />
+        </mesh>
+        
         <MouseTracker setMousePosition={setMousePosition} />
         
         <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
