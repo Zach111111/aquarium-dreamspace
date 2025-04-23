@@ -2,7 +2,7 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { WaterTank } from './WaterTank';
+import WaterTank from './WaterTank';
 import { DebugCube } from './scene/DebugCube';
 import { ErrorBoundary } from './ErrorBoundary';
 import { Lighting } from './Lighting';

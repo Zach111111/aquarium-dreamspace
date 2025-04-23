@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -7,7 +6,7 @@ import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import { Lighting } from '../Lighting';
 import { LoadingFallback } from '../LoadingFallback';
 import { ErrorBoundary } from '../ErrorBoundary';
-import { WaterTank } from '../WaterTank';
+import WaterTank from '../WaterTank';
 import { Fish } from '../Fish';
 import { Plant } from '../Plant';
 import { Kelp } from '../Kelp';
@@ -23,15 +22,12 @@ const AquariumContent = () => {
   const orbitSpeed = useAquariumStore(state => state.orbitSpeed);
   const [fishWorldPositions, setFishWorldPositions] = useState<THREE.Vector3[]>([]);
   
-  // Use Group for fish refs
   const fishRefs = useRef<Array<THREE.Group | null>>([]);
   
-  // Initialize with nulls
   useMemo(() => {
     fishRefs.current = Array(7).fill(null);
   }, []);
   
-  // Fish data
   const fishData = useMemo(() => {
     return Array.from({ length: 7 }, (_, index) => ({
       scale: 0.7 + Math.random() * 0.5,
@@ -40,7 +36,6 @@ const AquariumContent = () => {
     }));
   }, []);
 
-  // Plant positions
   const plantPositions = useMemo(() => {
     const positions: [number, number, number][] = [];
     const count = 5;
@@ -54,7 +49,6 @@ const AquariumContent = () => {
     return positions;
   }, [tankSize]);
 
-  // Kelp positions
   const kelpPositions = useMemo(() => {
     const positions: [number, number, number][] = [];
     positions.push([0, -tankSize[1] / 2 * 0.98, -tankSize[2] * 0.42]);
@@ -65,7 +59,6 @@ const AquariumContent = () => {
     return positions;
   }, [tankSize]);
 
-  // Crystal data
   const crystalData = useMemo(() => {
     const crystals = [];
     const count = 3;
@@ -88,12 +81,10 @@ const AquariumContent = () => {
     return crystals;
   }, [tankSize]);
 
-  // Three.js hooks with safer error handling
   const { raycaster, camera, mouse } = useThree();
   const planeXZ = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
   const intersectionPoint = useMemo(() => new THREE.Vector3(), []);
   
-  // Track fish positions with error handling
   const updateFishPositions = useCallback(() => {
     try {
       const positions: THREE.Vector3[] = [];
@@ -117,14 +108,12 @@ const AquariumContent = () => {
   
   useFrame(() => {
     try {
-      // Mouse tracking
       raycaster.setFromCamera(mouse, camera);
       if (raycaster.ray.intersectPlane(planeXZ, intersectionPoint)) {
         setMousePosition(intersectionPoint.clone());
       }
       
-      // Update fish positions - less frequently to improve performance
-      if (Math.random() < 0.1) { // Only update 10% of frames
+      if (Math.random() < 0.1) {
         updateFishPositions();
       }
     } catch (error) {
