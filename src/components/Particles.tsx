@@ -1,5 +1,5 @@
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, forwardRef } from 'react';
 import * as THREE from 'three';
 
 interface ParticlesProps {
@@ -11,14 +11,14 @@ interface ParticlesProps {
   audioLevel?: number;
 }
 
-export function Particles({ 
+export const Particles = forwardRef<THREE.Points, ParticlesProps>(function Particles({ 
   count = 50, 
   color = '#F6F7FF', 
   size = 0.05,
   tankSize,
   mousePosition,
   audioLevel = 0
-}: ParticlesProps) {
+}, ref) {
   const pointsRef = useRef<THREE.Points>(null);
   const [tankWidth, tankHeight, tankDepth] = tankSize;
   
@@ -44,7 +44,7 @@ export function Particles({
   // We'll handle the animation in a separate component that's inside Canvas
   
   return (
-    <points ref={pointsRef}>
+    <points ref={ref || pointsRef}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
@@ -64,6 +64,6 @@ export function Particles({
       />
     </points>
   );
-}
+});
 
 Particles.displayName = 'Particles';

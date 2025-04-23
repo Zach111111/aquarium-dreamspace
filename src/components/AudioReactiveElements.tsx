@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import * as THREE from 'three';
 import { WaterTank } from './WaterTank';
@@ -26,7 +25,6 @@ interface AudioReactiveElementsProps {
   }>;
 }
 
-// Fallback components
 const MinimalFish = ({ tankSize, index }: { tankSize: [number, number, number], index: number }) => (
   <mesh position={[(Math.random() - 0.5) * 5, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 5]}>
     <tetrahedronGeometry args={[0.5, 0]} />
@@ -71,7 +69,6 @@ export function AudioReactiveElements({
   const particleVelocitiesRef = useRef<THREE.Vector3[]>([]);
   const particleCount = simpleMaterials ? 30 : 50;
 
-  // Initialize velocities for particles
   useEffect(() => {
     particleVelocitiesRef.current = Array(particleCount).fill(0).map(() => new THREE.Vector3(
       (Math.random() - 0.5) * 0.01,
@@ -80,7 +77,6 @@ export function AudioReactiveElements({
     ));
   }, [particleCount]);
 
-  // Initialize audio on user interaction
   useEffect(() => {
     const initAudio = () => {
       if (audioInitialized || audioFailed) return;
@@ -102,7 +98,6 @@ export function AudioReactiveElements({
       }
     };
     
-    // Add one-time event listeners for user interaction
     const handleInteraction = () => {
       initAudio();
       window.removeEventListener('click', handleInteraction);
@@ -118,7 +113,6 @@ export function AudioReactiveElements({
     };
   }, [audioInitialized, audioFailed]);
 
-  // Get audio levels from context - this runs inside Canvas so it's safe
   React.useEffect(() => {
     let isMounted = true;
     
@@ -129,7 +123,6 @@ export function AudioReactiveElements({
         const levels = audioManager.getAudioLevels();
         setAudioLevels(levels);
       } catch (error) {
-        // Silent fail with default values
         setAudioLevels({ bass: 0, mid: 0, treble: 0 });
       }
       
@@ -143,7 +136,6 @@ export function AudioReactiveElements({
     };
   }, [audioInitialized, audioFailed]);
   
-  // Check for low performance and toggle simple materials
   useEffect(() => {
     let frameCount = 0;
     let lastTime = performance.now();
@@ -183,12 +175,10 @@ export function AudioReactiveElements({
     };
   }, [simpleMaterials]);
 
-  // Component error handlers
   const handleComponentError = (component: keyof typeof componentStatus) => {
     setComponentStatus(prev => ({ ...prev, [component]: false }));
     console.error(`${component} component failed to render`);
     
-    // Try to recover after a delay
     setTimeout(() => {
       setComponentStatus(prev => ({ ...prev, [component]: true }));
     }, 5000);
@@ -196,7 +186,6 @@ export function AudioReactiveElements({
 
   return (
     <WaterTank size={tankSize} audioLevel={audioLevels.bass} useSimpleMaterial={simpleMaterials}>
-      {/* Fish with error boundaries */}
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
           {componentStatus.fish && fishData.map((fish, i) => (
@@ -217,7 +206,6 @@ export function AudioReactiveElements({
         </Suspense>
       </ErrorBoundary>
       
-      {/* Plants with error boundaries */}
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
           {componentStatus.plants && plantPositions.map((position, i) => (
@@ -236,7 +224,6 @@ export function AudioReactiveElements({
         </Suspense>
       </ErrorBoundary>
       
-      {/* Crystals with error boundaries */}
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
           {componentStatus.crystals && crystalData.map((crystal, i) => (
@@ -256,7 +243,6 @@ export function AudioReactiveElements({
         </Suspense>
       </ErrorBoundary>
       
-      {/* Particles with error boundary */}
       <ErrorBoundary>
         <Suspense fallback={null}>
           {componentStatus.particles && (
@@ -283,7 +269,6 @@ export function AudioReactiveElements({
         </Suspense>
       </ErrorBoundary>
       
-      {/* Post-processing with error boundary */}
       <ErrorBoundary>
         <Suspense fallback={null}>
           {componentStatus.postprocessing && (
