@@ -4,6 +4,14 @@ import { useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
 
+interface PlantProps {
+  position: [number, number, number];
+  color?: string;
+  height?: number;
+  width?: number;
+  segments?: number;
+}
+
 export function Plant({ 
   position, 
   color = '#B9FFCE', 
@@ -43,3 +51,4 @@ export function Plant({
     </group>
   );
 }
+
