@@ -16,6 +16,7 @@ interface FishProps {
 export function Fish({ 
   color = '#A5F3FF',
   scale = 1, 
+  speed = 1,
   tankSize,
   index,
   audioLevel = 0
@@ -34,54 +35,58 @@ export function Fish({
     maxZ: (tankDepth/2) * 0.8
   };
   
-  // Memoize initial position and movement parameters for each fish
+  // Generate unique initial position for each fish
   const initialPosition = useMemo(() => new Vector3(
     MathUtils.lerp(bounds.minX, bounds.maxX, Math.random()),
     MathUtils.lerp(bounds.minY, bounds.maxY, Math.random()),
     MathUtils.lerp(bounds.minZ, bounds.maxZ, Math.random())
   ), [bounds]);
   
-  // Unique movement parameters for each fish
+  // Generate unique movement parameters for each fish
   const movementParams = useMemo(() => ({
-    amplitude: 0.005 + Math.random() * 0.005,
-    frequency: 0.8 + Math.random() * 1.2,
+    amplitude: 0.01 + Math.random() * 0.01,  // Increased amplitude
+    frequency: 0.5 + Math.random() * 1.0,
     phaseOffset: Math.random() * Math.PI * 2,
-    verticalFactor: 0.5 + Math.random() * 0.5
+    verticalFactor: 0.3 + Math.random() * 0.7
   }), []);
+  
+  // Store the target position for smooth movement
+  const targetPosition = useRef(initialPosition.clone());
+  const currentVelocity = useRef(new Vector3(0, 0, 0));
   
   useFrame(({ clock }) => {
     if (!fishRef.current) return;
     
     const fish = fishRef.current;
     const time = clock.getElapsedTime();
-    const fishIndex = index + 1;
+    const actualSpeed = speed * speedFactor;
     
-    // Apply unique movement pattern with wider range
-    const amplitude = movementParams.amplitude * speedFactor;
-    const phase = time * movementParams.frequency * speedFactor + movementParams.phaseOffset;
+    // Calculate new target position with wider range of motion
+    const phase = time * movementParams.frequency * actualSpeed + movementParams.phaseOffset;
     
-    // Calculate new positions with wider swimming range
-    const newX = initialPosition.x + Math.sin(phase) * amplitude * 3;
-    const newY = initialPosition.y + Math.cos(phase * movementParams.verticalFactor) * amplitude * 2;
-    const newZ = initialPosition.z + Math.sin(phase * 0.7) * amplitude * 2;
+    targetPosition.current.x = initialPosition.x + Math.sin(phase) * movementParams.amplitude * 6;
+    targetPosition.current.y = initialPosition.y + Math.sin(phase * movementParams.verticalFactor) * movementParams.amplitude * 4;
+    targetPosition.current.z = initialPosition.z + Math.cos(phase * 0.7) * movementParams.amplitude * 5;
     
     // Apply position with boundary checks
-    fish.position.x = MathUtils.clamp(newX, bounds.minX, bounds.maxX);
-    fish.position.y = MathUtils.clamp(newY, bounds.minY, bounds.maxY);
-    fish.position.z = MathUtils.clamp(newZ, bounds.minZ, bounds.maxZ);
+    targetPosition.current.x = MathUtils.clamp(targetPosition.current.x, bounds.minX, bounds.maxX);
+    targetPosition.current.y = MathUtils.clamp(targetPosition.current.y, bounds.minY, bounds.maxY);
+    targetPosition.current.z = MathUtils.clamp(targetPosition.current.z, bounds.minZ, bounds.maxZ);
+    
+    // Smooth movement towards target position
+    fish.position.lerp(targetPosition.current, 0.02 * actualSpeed);
     
     // Fish rotation facing movement direction
-    fish.rotation.z = Math.sin(time * 3 * speedFactor + fishIndex) * 0.2;
-    fish.rotation.y = Math.atan2(
-      Math.sin(phase),
-      Math.cos(phase * movementParams.verticalFactor)
-    );
+    const direction = new Vector3().subVectors(targetPosition.current, fish.position).normalize();
+    if (direction.length() > 0.1) {
+      fish.lookAt(fish.position.clone().add(direction));
+      // Add slight tilt based on vertical movement
+      fish.rotation.z = Math.sin(time * 3 * speedFactor) * 0.2;
+    }
     
     // Breathing animation
-    const breathScale = 1 + Math.sin(time * 5 * speedFactor + fishIndex) * 0.05;
-    if (typeof scale === 'number') {
-      fish.scale.set(scale, scale * breathScale, scale);
-    }
+    const breathScale = 1 + Math.sin(time * 2 * actualSpeed) * 0.05;
+    fish.scale.set(scale, scale * breathScale, scale);
   });
 
   return (
@@ -94,13 +99,11 @@ export function Fish({
           emissive={color} 
           emissiveIntensity={0.2}
           roughness={0.4}
-          depthWrite={true}
         />
       </mesh>
       
       {/* Fish tail */}
-      <mesh position={[initialPosition.x + scale * 0.4, initialPosition.y, initialPosition.z]} 
-            rotation={[0, 0, Math.PI]} 
+      <mesh position={[initialPosition.x - scale * 0.4, initialPosition.y, initialPosition.z]} 
             scale={[scale * 0.4, scale * 0.3, scale * 0.2]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 
@@ -108,7 +111,6 @@ export function Fish({
           emissive={color} 
           emissiveIntensity={0.2}
           roughness={0.4}
-          depthWrite={true}
         />
       </mesh>
     </group>

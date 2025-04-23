@@ -63,6 +63,10 @@ export function WaterTank({
 
   return (
     <group>
+      {/* Add ambient light inside the tank for better visibility */}
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 5, 5]} intensity={0.7} castShadow />
+      
       {/* Water volume */}
       <mesh
         ref={waterRef}
