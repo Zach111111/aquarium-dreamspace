@@ -1,6 +1,7 @@
+
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
-import { Suspense } from 'react';
+import { Suspense, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
@@ -46,6 +47,15 @@ export function AquariumScene() {
     }
     return groups;
   }, []);
+
+  // Generate plant positions
+  const plantPositions = useMemo(() => {
+    return Array.from({ length: 6 }, () => ([
+      (Math.random() - 0.5) * tankSize[0] * 0.7,
+      -tankSize[1] / 2 * 0.9,
+      (Math.random() - 0.5) * tankSize[2] * 0.7
+    ] as [number, number, number]));
+  }, [tankSize]);
 
   // Generate crystal positions
   const crystalData = Array.from({ length: 3 }, () => {
