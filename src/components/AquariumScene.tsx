@@ -1,10 +1,11 @@
+
 import React, { useMemo, useRef, useState, useEffect, Suspense } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 import { Lighting } from './Lighting';
 import { AudioReactiveElements } from './AudioReactiveElements';
-import { ErrorBoundary } from './ErrorBoundary';
+// import { ErrorBoundary } from './ErrorBoundary'; // Commenting out ErrorBoundary
 import { LoadingFallback } from './LoadingFallback';
 
 import { PerspectiveCamera, Stats } from '@react-three/drei';
@@ -168,24 +169,28 @@ export function AquariumScene() {
         stencil: false,
       }}
     >
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingFallback />}>
-          <MouseTracker setMousePosition={setMousePosition} />
-          
-          <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
-          <Lighting />
+      {/* Hot pink test cube */}
+      <mesh>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial color="hotpink" />
+      </mesh>
+      
+      <Suspense fallback={<LoadingFallback />}>
+        <MouseTracker setMousePosition={setMousePosition} />
+        
+        <PerspectiveCamera makeDefault position={[0, 0, 12]} fov={60} />
+        <Lighting />
 
-          <AudioReactiveElements
-            mousePosition={mousePosition}
-            tankSize={tankSize}
-            fishData={fishData}
-            plantPositions={plantPositions}
-            crystalData={crystalData}
-          />
-          
-          {process.env.NODE_ENV === 'development' && <Stats />}
-        </Suspense>
-      </ErrorBoundary>
+        <AudioReactiveElements
+          mousePosition={mousePosition}
+          tankSize={tankSize}
+          fishData={fishData}
+          plantPositions={plantPositions}
+          crystalData={crystalData}
+        />
+        
+        {process.env.NODE_ENV === 'development' && <Stats />}
+      </Suspense>
     </Canvas>
   );
 }

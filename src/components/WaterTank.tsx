@@ -96,8 +96,8 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     `,
   };
 
-  // Use the FIXED shader, not the debug box
-  const useSimpleMaterial = false;
+  // Enable simple material for debugging
+  const useSimpleMaterial = true;
 
   // thickness for the glass walls
   const wallThickness = 0.25;
@@ -122,9 +122,8 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
           />
         ) : (
           <shaderMaterial
-            uniforms={waterShader.uniforms}
-            vertexShader={waterShader.vertexShader}
-            fragmentShader={waterShader.fragmentShader}
+            attach="material"
+            args={[waterShader]}
             transparent
             side={THREE.DoubleSide}
           />
