@@ -1,5 +1,5 @@
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import WaterTank from './WaterTank';
@@ -9,6 +9,30 @@ import { Lighting } from './Lighting';
 import { toast } from "@/components/ui/use-toast";
 
 export function FishTankDemo() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Handle context loss with standard event listeners
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      console.warn('WebGL context lost', e);
+      toast({
+        title: "Rendering Issue",
+        description: "WebGL context was lost. Trying to recover...",
+        variant: "destructive"
+      });
+    };
+    
+    if (canvas) {
+      canvas.addEventListener('webglcontextlost', handleContextLost);
+      return () => {
+        canvas.removeEventListener('webglcontextlost', handleContextLost);
+      };
+    }
+  }, []);
+
   return (
     <div className="w-full h-screen relative overflow-hidden">
       <ErrorBoundary>
@@ -48,17 +72,12 @@ export function FishTankDemo() {
           <OrbitControls enableDamping dampingFactor={0.1} />
         </Canvas>
         
-        {/* Handle context loss outside the Canvas component */}
-        <canvas
-          className="hidden"
-          onContextLost={(e) => {
-            console.warn('WebGL context lost', e);
-            toast({
-              title: "Rendering Issue",
-              description: "WebGL context was lost. Trying to recover...",
-              variant: "destructive"
-            });
-          }}
+        {/* Hidden canvas for context loss monitoring */}
+        <canvas 
+          ref={canvasRef}
+          className="hidden" 
+          width={1} 
+          height={1}
         />
       </ErrorBoundary>
     </div>
