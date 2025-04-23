@@ -1,27 +1,63 @@
 
-import React, { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useRef, useState, useEffect, useMemo } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
 
 interface WaterTankProps {
-  size?: [number, number, number];
-  children?: React.ReactNode;
+  size: [number, number, number];
+  children: React.ReactNode;
   audioLevel?: number;
   useSimpleMaterial?: boolean;
 }
 
-function WaterTank({ 
-  size = [5, 4, 5], 
+export function WaterTank({ 
+  size, 
   children, 
   audioLevel = 0,
-  useSimpleMaterial = true
+  useSimpleMaterial = false
 }: WaterTankProps) {
   const [width, height, depth] = size;
   const toggleMenu = useAquariumStore(state => state.toggleMenu);
   const waterRef = useRef<THREE.Mesh>(null);
   const glassRef = useRef<THREE.Mesh>(null);
+  const { gl } = useThree();
+  
+  // Auto-detect if we need to use simple materials
+  const [shouldUseSimpleMaterial, setShouldUseSimpleMaterial] = useState(useSimpleMaterial);
+  const [materialFailure, setMaterialFailure] = useState(false);
+  
+  // Performance monitoring
+  useEffect(() => {
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let fps = 60;
+    
+    const checkPerformance = () => {
+      frameCount++;
+      const now = performance.now();
+      
+      if (now - lastTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        lastTime = now;
+        
+        // If FPS drops below threshold, switch to simple materials
+        if (fps < 30 && !shouldUseSimpleMaterial) {
+          console.log('Low performance detected, switching to simple materials');
+          setShouldUseSimpleMaterial(true);
+        }
+      }
+      
+      requestAnimationFrame(checkPerformance);
+    };
+    
+    const handle = requestAnimationFrame(checkPerformance);
+    
+    return () => cancelAnimationFrame(handle);
+  }, [shouldUseSimpleMaterial]);
 
+  // Basic interaction with safe error handling
   const handlePointerDown = () => {
     try {
       toggleMenu();
@@ -30,46 +66,92 @@ function WaterTank({
     }
   };
 
+  // Material creation with error handling
+  const waterMaterial = useMemo(() => {
+    try {
+      if (shouldUseSimpleMaterial || materialFailure) {
+        return new THREE.MeshBasicMaterial({
+          color: "#66ccff",
+          transparent: true,
+          opacity: 0.2,
+          side: THREE.DoubleSide
+        });
+      } else {
+        return new THREE.MeshPhysicalMaterial({
+          color: "#66ccff",
+          transparent: true,
+          opacity: 0.2,
+          transmission: 0.95,
+          thickness: 0.5,
+          roughness: 0.1,
+          ior: 1.33,
+          side: THREE.DoubleSide
+        });
+      }
+    } catch (error) {
+      console.error("Failed to create water material:", error);
+      setMaterialFailure(true);
+      return new THREE.MeshBasicMaterial({
+        color: "#66ccff",
+        transparent: true,
+        opacity: 0.2,
+        side: THREE.DoubleSide
+      });
+    }
+  }, [shouldUseSimpleMaterial, materialFailure]);
+
+  const glassMaterial = useMemo(() => {
+    try {
+      if (shouldUseSimpleMaterial || materialFailure) {
+        return new THREE.MeshBasicMaterial({
+          color: "#F6F7FF",
+          transparent: true,
+          opacity: 0.2,
+          side: THREE.BackSide
+        });
+      } else {
+        return new THREE.MeshPhysicalMaterial({
+          color: "#F6F7FF",
+          transparent: true,
+          opacity: 0.2,
+          transmission: 0.95,
+          thickness: 0.25,
+          roughness: 0.05,
+          ior: 1.52,
+          side: THREE.BackSide
+        });
+      }
+    } catch (error) {
+      console.error("Failed to create glass material:", error);
+      setMaterialFailure(true);
+      return new THREE.MeshBasicMaterial({
+        color: "#F6F7FF",
+        transparent: true,
+        opacity: 0.2,
+        side: THREE.BackSide
+      });
+    }
+  }, [shouldUseSimpleMaterial, materialFailure]);
+
   useFrame(({ clock }) => {
     if (!waterRef.current) return;
     
     try {
+      // Simple water animation
       const time = clock.getElapsedTime();
+      waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.05;
       
-      // Gentle water movement
-      if (waterRef.current.material instanceof THREE.Material) {
-        const waterOpacity = 0.6 + Math.sin(time * 0.5) * 0.03 + (audioLevel || 0) * 0.1;
-        if ('opacity' in waterRef.current.material) {
-          waterRef.current.material.opacity = waterOpacity;
-        }
+      // Audio-reactive water movement
+      if (audioLevel > 0.1) {
+        waterRef.current.position.y = Math.sin(time * 2) * audioLevel * 0.2;
       }
-      
-      // Very subtle tank movement
-      waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.02;
     } catch (error) {
       console.error("Water animation error:", error);
     }
   });
 
-  // More visually appealing materials
-  const waterMaterial = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0.4, 0.7, 0.9),
-    transparent: true,
-    opacity: 0.7,
-    roughness: 0.2,
-    metalness: 0.1
-  });
-
-  const glassMaterial = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0.95, 0.95, 1.0),
-    transparent: true,
-    opacity: 0.15,
-    roughness: 0.05,
-    metalness: 0.2,
-    side: THREE.BackSide
-  });
-
-  const wallThickness = 0.15;
+  // thickness for the glass walls
+  const wallThickness = 0.25;
 
   return (
     <group>
@@ -83,7 +165,7 @@ function WaterTank({
         <primitive object={waterMaterial} attach="material" />
       </mesh>
       
-      {/* Glass tank */}
+      {/* Glass walls */}
       <mesh 
         ref={glassRef}
         position={[0, 0, 0]}
@@ -102,16 +184,8 @@ function WaterTank({
       <group position={[0, 0, 0]}>
         {children}
       </group>
-      
-      {/* Tank bottom */}
-      <mesh position={[0, -height/2 * 0.99, 0]} rotation={[-Math.PI/2, 0, 0]}>
-        <planeGeometry args={[width * 0.98, depth * 0.98]} />
-        <meshStandardMaterial color="#cccccc" roughness={0.9} />
-      </mesh>
     </group>
   );
 }
 
 WaterTank.displayName = 'WaterTank';
-
-export default WaterTank;

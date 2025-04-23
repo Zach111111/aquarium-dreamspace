@@ -1,128 +1,94 @@
 
 import { useState, useEffect } from 'react';
 import { AquariumScene } from '../components/AquariumScene';
+import { VHSOverlay } from '../components/VHSOverlay';
+import { ExploreMenu } from '../components/ExploreMenu';
 import { useAquariumStore } from '../store/aquariumStore';
-import { toast } from "@/components/ui/use-toast";
-import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [renderError, setRenderError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const isMenuOpen = useAquariumStore(state => state.isMenuOpen);
+  const [debugMode] = useState(false); // Set to true to render a simple test div
   
-  // Simulate loading progress with shorter timing
+  // Simulate loading progress
   useEffect(() => {
     let progress = 0;
     const interval = setInterval(() => {
-      progress += 25;
+      progress += Math.random() * 15;
       if (progress >= 100) {
         progress = 100;
         clearInterval(interval);
+        
+        // Delay to show 100% before removing loading screen
         setTimeout(() => {
           setIsLoading(false);
-          console.log("Loading complete, showing aquarium scene");
-        }, 100);
+        }, 500);
       }
       setLoadingProgress(progress);
-    }, 100);
+    }, 200);
     
     return () => clearInterval(interval);
   }, []);
 
-  const skipLoading = () => {
-    setIsLoading(false);
-    console.log("Loading skipped, showing aquarium scene");
-  };
-
-  const handleSceneError = () => {
-    console.error("Scene error detected");
-    setRenderError(true);
-    toast({
-      title: "Rendering Error",
-      description: "There was an issue with the 3D scene. Trying to recover...",
-      variant: "destructive"
-    });
-    
-    // Auto retry once after a delay
-    if (retryCount < 2) {
-      setTimeout(() => {
-        setRetryCount(prev => prev + 1);
-        setRenderError(false);
-        console.log(`Auto-retry attempt ${retryCount + 1}`);
-      }, 2000);
-    }
-  };
-
-  const handleManualRetry = () => {
-    setRenderError(false);
-    setRetryCount(prev => prev + 1);
-  };
+  if (debugMode) {
+    return <div style={{color:'red', padding: '20px', fontSize: '24px'}}>HELLO WORLD DEBUG MODE</div>;
+  }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden">
+    <div className="h-screen w-screen overflow-hidden">
       {isLoading ? (
-        // Loading screen
-        <div className="flex flex-col items-center justify-center h-full bg-[#1A1F2C] text-white">
-          <h1 className="text-3xl font-bold mb-4">
-            AQUARIUM<span className="text-cyan-500">DREAMSPACE</span>
+        // PS2-style loading screen
+        <div className="flex flex-col items-center justify-center h-full bg-[#1A1F2C] text-aquarium-white">
+          <div className="w-64 h-64 mb-8 relative">
+            <div className="absolute inset-0 rounded-full border-4 border-aquarium-blue/30"></div>
+            <div 
+              className="absolute top-0 bottom-0 left-0 rounded-l-full border-4 border-aquarium-blue"
+              style={{ 
+                width: `${loadingProgress / 2}%`,
+                borderRight: 'none',
+                transform: `rotate(${loadingProgress * 3.6}deg)`,
+                transformOrigin: 'center right',
+                transition: 'all 0.2s ease'
+              }}
+            ></div>
+            
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-2xl font-bold text-aquarium-blue animate-pulse-light">
+                {Math.round(loadingProgress)}%
+              </div>
+            </div>
+          </div>
+          
+          <h1 className="text-3xl font-bold text-aquarium-white mb-4 tracking-wider">
+            AQUARIUM<span className="text-aquarium-blue">DREAMSPACE</span>
           </h1>
           
-          <div className="w-64 bg-gray-700 rounded-full h-4 mb-6">
-            <div 
-              className="bg-cyan-500 h-4 rounded-full transition-all duration-200" 
-              style={{ width: `${loadingProgress}%` }}
-            />
+          <div className="text-sm text-aquarium-white/70 animate-pulse">
+            LOADING ASSETS...
           </div>
           
-          <button 
-            onClick={skipLoading}
-            className="mt-4 text-sm text-gray-400 hover:text-white"
-          >
-            Skip Loading
-          </button>
+          <div className="mt-8 text-xs text-aquarium-white/50">
+            PRESS ANY KEY TO START
+          </div>
         </div>
       ) : (
+        // Main aquarium scene
         <>
-          {/* 3D Canvas Background - z-index 0 */}
-          <div className="absolute inset-0 z-0">
-            <ErrorBoundary>
-              {!renderError && <AquariumScene key={`scene-${retryCount}`} />}
-            </ErrorBoundary>
-            
-            {/* Fallback if scene fails to render */}
-            {renderError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-[#1A1F2C]">
-                <div className="text-white text-center p-4">
-                  <h2 className="text-xl mb-2">3D Rendering Issue</h2>
-                  <p>We encountered a problem with the 3D scene.</p>
-                  <div className="flex justify-center gap-4 mt-4">
-                    <button 
-                      onClick={handleManualRetry}
-                      className="px-4 py-2 bg-cyan-600 rounded hover:bg-cyan-700"
-                    >
-                      Try Again
-                    </button>
-                    <button 
-                      onClick={() => window.location.reload()}
-                      className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700"
-                    >
-                      Refresh Page
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+          <AquariumScene />
+          <VHSOverlay />
+          <ExploreMenu isVisible={isMenuOpen} />
+          
+          {/* Info text */}
+          <div className="absolute top-5 left-5 text-aquarium-white z-10">
+            <h1 className="text-xl font-bold tracking-wider bg-black/30 px-3 py-1 rounded">
+              AQUARIUM<span className="text-aquarium-blue">DREAMSPACE</span>
+            </h1>
           </div>
-
-          {/* UI Overlay - z-index 1 */}
-          <div className="absolute inset-0 z-10 pointer-events-none">
-            <div className="p-5">
-              <h1 className="text-xl font-bold tracking-wider bg-black/50 px-3 py-1 rounded inline-block pointer-events-auto">
-                AQUARIUM<span className="text-cyan-500">DREAMSPACE</span>
-              </h1>
-            </div>
+          
+          {/* Instructions */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-aquarium-white/80 text-center text-xs bg-black/40 px-4 py-2 rounded-full z-10">
+            <p>CLICK TO INTERACT • DRAG CRYSTALS • LONG-PRESS FOR MENU</p>
           </div>
         </>
       )}
