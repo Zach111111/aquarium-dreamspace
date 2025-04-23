@@ -39,16 +39,14 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
 
   useFrame(({ clock }) => {
     if (!waterRef.current) return;
-    
     const time = clock.getElapsedTime();
-    
     if (waterRef.current.material instanceof THREE.ShaderMaterial) {
       waterRef.current.material.uniforms.uTime.value = time;
       waterRef.current.material.uniforms.uAudioLevel.value = audioLevel;
     }
   });
 
-  // Define water shader with fixed precision
+  // Define water shader with fixed precision (the user patch doesn't change this)
   const waterShader = {
     uniforms: {
       uTime: { value: 0 },
@@ -58,7 +56,7 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     vertexShader: `
       varying vec2 vUv;
       varying vec3 vPosition;
-      
+
       void main() {
         vUv = uv;
         vPosition = position;
@@ -67,48 +65,50 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     `,
     fragmentShader: `
       precision mediump float;
-      
+
       uniform float uTime;
       uniform vec3 uColor;
       uniform float uAudioLevel;
       varying vec2 vUv;
       varying vec3 vPosition;
-      
+
       float noise(vec2 p) {
         return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
       }
-      
+
       void main() {
         float causticIntensity = 0.03 * (1.0 + uAudioLevel * 2.0);
         vec2 causticUv = vUv * 10.0 + uTime * 0.1;
         float caustic = noise(causticUv) * causticIntensity;
-        
+
         vec3 waterColor = uColor + vec3(caustic);
-        
+
         float depthFactor = (vPosition.y + 0.5) * 0.5;
         waterColor = mix(waterColor * 0.7, waterColor, depthFactor);
-        
+
         if (vPosition.y > 0.48) {
           float wave = sin(vUv.x * 20.0 + uTime)
                      * sin(vUv.y * 20.0 + uTime)
                      * 0.05;
           waterColor += vec3(wave);
         }
-        
+
         gl_FragColor = vec4(waterColor, 0.6);
       }
     `,
   };
 
-  const wallThickness = 0.25;
+  // For debugging: set to true to see a simple box instead of shader water 
+  const useSimpleMaterial = true;
 
-  // For debugging purposes
-  const useSimpleMaterial = false;
+  // thickness for the glass walls
+  const wallThickness = 0.25;
 
   return (
     <group>
-      <mesh 
-        ref={waterRef} 
+      {/* Water volume */}
+      <mesh
+        ref={waterRef}
         position={[0, 0, 0]}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
@@ -116,7 +116,6 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
       >
         <boxGeometry args={[width, height, depth]} />
         {useSimpleMaterial ? (
-          // Simple material for debugging
           <meshStandardMaterial
             color="#66ccff"
             transparent
@@ -124,22 +123,28 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
             side={THREE.DoubleSide}
           />
         ) : (
-          // Shader material with explicit properties
-          <shaderMaterial 
+          <shaderMaterial
             uniforms={waterShader.uniforms}
             vertexShader={waterShader.vertexShader}
             fragmentShader={waterShader.fragmentShader}
-            transparent={true} 
+            transparent
             side={THREE.DoubleSide}
           />
         )}
       </mesh>
-      
+
+      {/* Glass walls */}
       <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[width + wallThickness, height + wallThickness, depth + wallThickness]} />
+        <boxGeometry
+          args={[
+            width + wallThickness,
+            height + wallThickness,
+            depth + wallThickness,
+          ]}
+        />
         <meshPhysicalMaterial
           color="#F6F7FF"
-          transparent={true}
+          transparent
           opacity={0.2}
           roughness={0.05}
           metalness={0.0}
@@ -148,7 +153,8 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
           side={THREE.BackSide}
         />
       </mesh>
-      
+
+      {/* Tank contents */}
       <group position={[0, 0, 0]}>
         {children}
       </group>
