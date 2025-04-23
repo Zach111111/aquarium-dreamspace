@@ -35,30 +35,45 @@ function WaterTank({
     
     try {
       const time = clock.getElapsedTime();
-      waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.05;
+      
+      // Gentle water movement
+      if (waterRef.current.material instanceof THREE.Material) {
+        const waterOpacity = 0.6 + Math.sin(time * 0.5) * 0.03 + (audioLevel || 0) * 0.1;
+        if ('opacity' in waterRef.current.material) {
+          waterRef.current.material.opacity = waterOpacity;
+        }
+      }
+      
+      // Very subtle tank movement
+      waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.02;
     } catch (error) {
       console.error("Water animation error:", error);
     }
   });
 
-  // Simple materials to ensure rendering
-  const waterMaterial = new THREE.MeshBasicMaterial({
-    color: "#66ccff",
+  // More visually appealing materials
+  const waterMaterial = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(0.4, 0.7, 0.9),
     transparent: true,
-    opacity: 0.6
+    opacity: 0.7,
+    roughness: 0.2,
+    metalness: 0.1
   });
 
-  const glassMaterial = new THREE.MeshBasicMaterial({
-    color: "#F6F7FF",
+  const glassMaterial = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(0.95, 0.95, 1.0),
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.15,
+    roughness: 0.05,
+    metalness: 0.2,
     side: THREE.BackSide
   });
 
-  const wallThickness = 0.25;
+  const wallThickness = 0.15;
 
   return (
     <group>
+      {/* Water volume */}
       <mesh
         ref={waterRef}
         position={[0, 0, 0]}
@@ -68,6 +83,7 @@ function WaterTank({
         <primitive object={waterMaterial} attach="material" />
       </mesh>
       
+      {/* Glass tank */}
       <mesh 
         ref={glassRef}
         position={[0, 0, 0]}
@@ -82,9 +98,16 @@ function WaterTank({
         <primitive object={glassMaterial} attach="material" />
       </mesh>
       
+      {/* Tank contents */}
       <group position={[0, 0, 0]}>
         {children}
       </group>
+      
+      {/* Tank bottom */}
+      <mesh position={[0, -height/2 * 0.99, 0]} rotation={[-Math.PI/2, 0, 0]}>
+        <planeGeometry args={[width * 0.98, depth * 0.98]} />
+        <meshStandardMaterial color="#cccccc" roughness={0.9} />
+      </mesh>
     </group>
   );
 }

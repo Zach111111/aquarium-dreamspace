@@ -7,6 +7,7 @@ import { MinimalPlant } from './minimal/MinimalPlant';
 import { MinimalCrystal } from './minimal/MinimalCrystal';
 import WaterTank from './WaterTank';
 import { ErrorBoundary } from './ErrorBoundary';
+import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 
 interface AudioReactiveElementsProps {
   mousePosition: any;
@@ -22,7 +23,6 @@ interface AudioReactiveElementsProps {
 }
 
 export function AudioReactiveElements({
-  mousePosition,
   tankSize,
   fishData,
   plantPositions,
@@ -30,13 +30,6 @@ export function AudioReactiveElements({
 }: AudioReactiveElementsProps) {
   const { audioLevels, isInitialized, initializeAudio } = useAudioAnalyzer();
   const [simpleMaterials, setSimpleMaterials] = useState(true);
-  const [componentStatus] = useState({
-    fish: true,
-    plants: true,
-    crystals: true,
-    particles: false,
-    postprocessing: false,
-  });
 
   // Initialize audio on user interaction
   useEffect(() => {
@@ -92,25 +85,38 @@ export function AudioReactiveElements({
   }, [simpleMaterials]);
 
   return (
-    <WaterTank size={tankSize} audioLevel={audioLevels.bass} useSimpleMaterial={simpleMaterials}>
-      <ErrorBoundary>
-        {componentStatus.fish &&
-          fishData.map((fish, i) => (
+    <>
+      <PerspectiveCamera makeDefault position={[0, 0, 10]} fov={60} />
+      <OrbitControls 
+        enableZoom={true} 
+        enablePan={false} 
+        autoRotate={true} 
+        autoRotateSpeed={0.5}
+        maxDistance={15}
+        minDistance={6}
+      />
+      <ambientLight intensity={0.6} />
+      <pointLight position={[10, 10, 10]} intensity={0.8} />
+      
+      <WaterTank size={tankSize} audioLevel={audioLevels.bass} useSimpleMaterial={simpleMaterials}>
+        <ErrorBoundary>
+          {fishData.map((fish, i) => (
             <MinimalFish key={`fish-${i}`} tankSize={tankSize} index={i} />
           ))}
-      </ErrorBoundary>
-      <ErrorBoundary>
-        {componentStatus.plants &&
-          plantPositions.map((position, i) => (
+        </ErrorBoundary>
+        
+        <ErrorBoundary>
+          {plantPositions.map((position, i) => (
             <MinimalPlant key={`plant-${i}`} position={position} />
           ))}
-      </ErrorBoundary>
-      <ErrorBoundary>
-        {componentStatus.crystals &&
-          crystalData.map((crystal, i) => (
+        </ErrorBoundary>
+        
+        <ErrorBoundary>
+          {crystalData.map((crystal, i) => (
             <MinimalCrystal key={`crystal-${i}`} position={crystal.position} />
           ))}
-      </ErrorBoundary>
-    </WaterTank>
+        </ErrorBoundary>
+      </WaterTank>
+    </>
   );
 }
