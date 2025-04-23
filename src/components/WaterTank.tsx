@@ -4,7 +4,7 @@ import { useFrame, extend } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
 
-// Extend Three.js with ShaderMaterial so we can use it as a JSX element
+// Extend Three.js with ShaderMaterial so <shaderMaterial /> works
 extend({ ShaderMaterial: THREE.ShaderMaterial });
 
 interface WaterTankProps {
@@ -46,7 +46,7 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     }
   });
 
-  // Define water shader with fixed precision (the user patch doesn't change this)
+  // Water shader with explicit uniforms/props
   const waterShader = {
     uniforms: {
       uTime: { value: 0 },
@@ -56,7 +56,6 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     vertexShader: `
       varying vec2 vUv;
       varying vec3 vPosition;
-
       void main() {
         vUv = uv;
         vPosition = position;
@@ -65,7 +64,6 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     `,
     fragmentShader: `
       precision mediump float;
-
       uniform float uTime;
       uniform vec3 uColor;
       uniform float uAudioLevel;
@@ -98,8 +96,8 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
     `,
   };
 
-  // For debugging: set to true to see a simple box instead of shader water 
-  const useSimpleMaterial = true;
+  // Use the FIXED shader, not the debug box
+  const useSimpleMaterial = false;
 
   // thickness for the glass walls
   const wallThickness = 0.25;
@@ -132,7 +130,6 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
           />
         )}
       </mesh>
-
       {/* Glass walls */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry
@@ -153,7 +150,6 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
           side={THREE.BackSide}
         />
       </mesh>
-
       {/* Tank contents */}
       <group position={[0, 0, 0]}>
         {children}

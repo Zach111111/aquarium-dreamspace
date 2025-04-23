@@ -8,37 +8,34 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean;
+  error: any;
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(_error: any) {
-    return { hasError: true };
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: any, errorInfo: any) {
     console.error("3D Scene Error:", error, errorInfo);
     toast({
       title: "Rendering Error",
-      description: "There was a problem rendering the 3D scene. Try refreshing.",
+      description: "There was a problem rendering the 3D scene. See console for details.",
       variant: "destructive"
     });
   }
 
   render() {
     if (this.state.hasError) {
-      return (
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[1, 1, 1]} />
-          <meshBasicMaterial color="red" />
-        </mesh>
-      );
+      // Surfaces the error in devtools/console, doesn't show a mesh fallback
+      console.error(this.state.error);
+      return null;
     }
-
     return this.props.children;
   }
 }
