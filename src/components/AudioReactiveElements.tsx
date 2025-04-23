@@ -1,7 +1,18 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 import WaterTank from './WaterTank';
-import { useAudioAnalyzer } from '../hooks/useAudioAnalyzer';
+import { Fish } from './Fish';
+import { Plant } from './Plant';
+import { Crystal } from './Crystal';
+import { Particles } from './Particles';
+import { PostProcessing } from './PostProcessing';
+import { audioManager } from '../utils/audio';
+import { random } from '../utils/noise';
+import { ErrorBoundary } from './ErrorBoundary';
+import { LoadingFallback } from './LoadingFallback';
+import { toast } from "@/components/ui/use-toast";
 
 interface AudioReactiveElementsProps {
   mousePosition: THREE.Vector3 | null;
