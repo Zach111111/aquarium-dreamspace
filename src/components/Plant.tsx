@@ -18,13 +18,12 @@ export function Plant({
   color = '#B9FFCE', 
   height = 2, 
   width = 0.5,
-  segments = 8, // Increased segments for smoother geometry
+  segments = 12,
   audioLevel = 0
 }: PlantProps) {
   const plantRef = useRef<Mesh>(null);
   const speedFactor = useAquariumStore(state => state.speedFactor);
   
-  // Memoize geometry and material to avoid recreation every frame
   const geometry = useMemo(() => 
     new CylinderGeometry(width * 0.2, width * 0.4, height, segments), 
     [width, height, segments]
@@ -37,30 +36,16 @@ export function Plant({
       emissiveIntensity: 0.1,
       roughness: 0.7,
       metalness: 0.1,
-      depthWrite: true // Enable depth writing to fix z-fighting
+      transparent: false,
+      depthWrite: true
     }), 
     [color]
   );
 
-  // Generate unique sway parameters for this plant
-  const swayParams = useMemo(() => ({
-    frequency: 0.5 + Math.random() * 0.5,
-    amplitude: 0.04 + Math.random() * 0.03,
-    phaseOffset: Math.random() * Math.PI * 2
-  }), []);
-
-  // Animate plant swaying with steady, controlled motion
   useFrame(({ clock }) => {
     if (!plantRef.current) return;
-    
     const time = clock.getElapsedTime();
-    
-    // Steady, predictable movement with unique parameters
-    const swaySpeed = swayParams.frequency * speedFactor;
-    // Simple sway with unique phase to avoid synchronization
-    const sway = Math.sin(time * swaySpeed + swayParams.phaseOffset) * swayParams.amplitude;
-    
-    plantRef.current.rotation.z = sway;
+    plantRef.current.rotation.z = Math.sin(time * 0.5) * 0.1;
   });
 
   return (

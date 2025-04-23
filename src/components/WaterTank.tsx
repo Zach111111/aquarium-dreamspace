@@ -1,5 +1,5 @@
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -20,14 +20,13 @@ export function WaterTank({
   const waterRef = useRef<THREE.Mesh>(null);
   const glassRef = useRef<THREE.Mesh>(null);
   
-  // Create optimized materials that won't cause property access issues
   const waterMaterial = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       color: "#66ccff",
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.3,
       side: THREE.DoubleSide,
-      depthWrite: false, // Prevents z-fighting with contents
+      depthWrite: true,
       roughness: 0.2,
       metalness: 0.1
     });
@@ -38,8 +37,9 @@ export function WaterTank({
       color: "#F6F7FF",
       transparent: true,
       opacity: 0.15,
-      side: THREE.BackSide,
-      depthWrite: true, // Enable depth writing for glass
+      side: THREE.FrontSide,
+      depthWrite: false,
+      depthTest: true,
       roughness: 0.05,
       metalness: 0.9,
       envMapIntensity: 1.5
@@ -49,21 +49,14 @@ export function WaterTank({
   useFrame(({ clock }) => {
     if (!waterRef.current) return;
     
-    try {
-      // Subtle water animation
-      const time = clock.getElapsedTime();
-      waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.02;
-    } catch (error) {
-      console.error("Water animation error:", error);
-    }
+    const time = clock.getElapsedTime();
+    waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.02;
   });
 
-  // thickness for the glass walls
   const wallThickness = 0.25;
 
   return (
     <group>
-      {/* Add ambient light inside the tank for better visibility */}
       <ambientLight intensity={0.5} />
       <directionalLight position={[5, 5, 5]} intensity={0.7} castShadow />
       
@@ -98,5 +91,3 @@ export function WaterTank({
     </group>
   );
 }
-
-WaterTank.displayName = 'WaterTank';
