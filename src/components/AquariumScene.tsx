@@ -144,6 +144,7 @@ export function AquariumScene() {
               alpha: false,
               stencil: false,
               depth: true,
+              logarithmicDepthBuffer: true, // Added for better depth sorting
             }}
             dpr={[1, 1.5]}
             onError={handleCanvasError}

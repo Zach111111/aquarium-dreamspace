@@ -25,6 +25,8 @@ export function Fish({
   groupOffset = { x: 0, y: 0, z: 0 }
 }: FishProps) {
   const fishRef = useRef<Group>(null);
+  const bodyRef = useRef<THREE.Mesh>(null);
+  const tailRef = useRef<THREE.Mesh>(null);
   const speedFactor = useAquariumStore(state => state.speedFactor);
   const decrementScore = useAquariumStore(state => state.decrementScore);
   const [isHovered, setIsHovered] = useState(false);
@@ -53,6 +55,25 @@ export function Fish({
     phaseOffset: Math.random() * Math.PI * 2 + index * (Math.PI / 4),
     verticalFactor: 0.3 + Math.random() * 0.7
   }), [index]);
+
+  // Body and tail materials
+  const bodyMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: color,
+      emissive: color,
+      emissiveIntensity: 0.2,
+      roughness: 0.4
+    });
+  }, [color]);
+
+  const tailMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: color,
+      emissive: color,
+      emissiveIntensity: 0.2,
+      roughness: 0.4
+    });
+  }, [color]);
 
   useFrame(({ clock }) => {
     if (!fishRef.current) return;
@@ -84,44 +105,61 @@ export function Fish({
       fishRef.current.rotation.z = Math.sin(time * 3 * speedFactor) * 0.2;
     }
 
+    // Update materials based on hover state
+    if (bodyRef.current && bodyRef.current.material) {
+      const material = bodyRef.current.material as THREE.MeshStandardMaterial;
+      material.emissiveIntensity = isHovered ? 0.5 : 0.2;
+      material.color.set(isClicked ? '#ff6666' : color);
+    }
+
+    if (tailRef.current && tailRef.current.material) {
+      const material = tailRef.current.material as THREE.MeshStandardMaterial;
+      material.emissiveIntensity = isHovered ? 0.5 : 0.2;
+      material.color.set(isClicked ? '#ff6666' : color);
+    }
+
     // Reset click animation after short time
     if (isClicked) {
       setTimeout(() => setIsClicked(false), 300);
     }
   });
 
-  const handlePointerDown = () => {
+  const handlePointerDown = (e) => {
+    // Stop event propagation to prevent it from reaching objects behind
+    e.stopPropagation();
+    
     decrementScore();
     setIsClicked(true);
     toast({
       title: "You touched a fish, oh no!",
       description: "-1",
       variant: "destructive",
-      className: "bg-[#1A1F2C] border-[#E5DEFF] text-[#E5DEFF]",
+      className: "compact-toast bg-[#1A1F2C] border-[#E5DEFF] text-[#E5DEFF]",
     });
   };
-
-  // Visual feedback scale based on interaction state
-  const hoverScale = isHovered ? 1.1 : 1;
-  const clickScale = isClicked ? 0.9 : 1;
-  const interactionScale = hoverScale * clickScale;
 
   return (
     <group 
       ref={fishRef} 
       position={initialPosition.toArray()}
-      onPointerDown={handlePointerDown}
-      onPointerOver={() => {
-        document.body.style.cursor = 'pointer';
-        setIsHovered(true);
-      }}
-      onPointerOut={() => {
-        document.body.style.cursor = 'default';
-        setIsHovered(false);
-      }}
-      scale={[scale * interactionScale, scale * interactionScale, scale * interactionScale]}
+      renderOrder={5} // Set a high render order for better visibility
     >
-      <mesh scale={[1, 0.6, 0.5]}>
+      {/* Fish body */}
+      <mesh 
+        ref={bodyRef}
+        scale={[1, 0.6, 0.5]}
+        onPointerDown={handlePointerDown}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+          setIsHovered(true);
+        }}
+        onPointerOut={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = 'default';
+          setIsHovered(false);
+        }}
+      >
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 
           color={isClicked ? '#ff6666' : color} 
@@ -131,9 +169,22 @@ export function Fish({
         />
       </mesh>
       
+      {/* Fish tail */}
       <mesh 
+        ref={tailRef}
         position={[-0.4, 0, 0]} 
         scale={[0.4, 0.3, 0.2]}
+        onPointerDown={handlePointerDown}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+          setIsHovered(true);
+        }}
+        onPointerOut={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = 'default';
+          setIsHovered(false);
+        }}
       >
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 

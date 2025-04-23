@@ -21,16 +21,16 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
     return new THREE.MeshPhysicalMaterial({
       color: "#66ccff",
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.6, // Increased opacity for better visibility
       side: THREE.DoubleSide,
-      depthWrite: true,
+      depthWrite: false, // Changed to false to prevent depth issues with transparent objects
       roughness: 0.1,
       metalness: 0.2,
       clearcoat: 0.8,
       clearcoatRoughness: 0.2,
       envMapIntensity: 1.5,
-      transmission: 0.95, // More glass-like effect
-      ior: 1.33 // Water's index of refraction
+      transmission: 0.95,
+      ior: 1.33
     });
   }, []);
 
@@ -39,8 +39,8 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
     return new THREE.MeshPhysicalMaterial({
       color: "#F6F7FF",
       transparent: true,
-      opacity: 0.15,
-      side: THREE.FrontSide,
+      opacity: 0.2, // Slightly increased opacity
+      side: THREE.DoubleSide, // Changed to DoubleSide to see both faces
       depthWrite: false,
       depthTest: true,
       roughness: 0.05,
@@ -57,7 +57,7 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
     return new THREE.MeshBasicMaterial({
       color: "#66ccff",
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.4, // Increased opacity
       side: THREE.DoubleSide
     });
   }, []);
@@ -71,9 +71,9 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
     waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.02;
     
     // Subtle water movement
-    if (waterRef.current.material) {
-      const material = waterRef.current.material as THREE.MeshPhysicalMaterial;
-      if (material.roughness) {
+    if (waterRef.current.material instanceof THREE.Material) {
+      const material = waterRef.current.material;
+      if ('roughness' in material && material.roughness !== undefined) {
         material.roughness = 0.1 + Math.sin(time * 0.5) * 0.05;
       }
     }
@@ -84,22 +84,47 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
       <ambientLight intensity={0.5} />
       <directionalLight position={[5, 5, 5]} intensity={0.7} castShadow />
       
-      {/* Water volume - now more visible */}
-      <mesh ref={waterRef} position={[0, 0, 0]}>
+      {/* Water volume with direct material assignment */}
+      <mesh ref={waterRef} position={[0, 0, 0]} renderOrder={1}>
         <boxGeometry args={[width * 0.98, height * 0.98, depth * 0.98]} />
-        <primitive object={actualWaterMaterial} />
+        <meshPhysicalMaterial 
+          color="#66ccff"
+          transparent={true}
+          opacity={0.6}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+          roughness={0.1}
+          metalness={0.2}
+          clearcoat={0.8}
+          clearcoatRoughness={0.2}
+          transmission={0.95}
+          ior={1.33}
+        />
       </mesh>
       
-      {/* Glass walls */}
-      <mesh ref={glassRef} position={[0, 0, 0]}>
+      {/* Glass walls with direct material assignment */}
+      <mesh ref={glassRef} position={[0, 0, 0]} renderOrder={2}>
         <boxGeometry args={[width + 0.25, height + 0.25, depth + 0.25]} />
-        <primitive object={glassMaterial} />
+        <meshPhysicalMaterial 
+          color="#F6F7FF"
+          transparent={true}
+          opacity={0.2}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+          depthTest={true}
+          roughness={0.05}
+          metalness={0.9}
+          envMapIntensity={1.5}
+          transmission={0.98}
+          reflectivity={0.9}
+          clearcoat={1.0}
+        />
       </mesh>
 
       {/* Tank edges with increased opacity */}
-      <lineSegments ref={edgesRef}>
+      <lineSegments ref={edgesRef} renderOrder={3}>
         <edgesGeometry args={[new THREE.BoxGeometry(width + 0.25, height + 0.25, depth + 0.25)]} />
-        <lineBasicMaterial color="#ffffff" opacity={0.8} transparent />
+        <lineBasicMaterial color="#ffffff" opacity={0.8} transparent linewidth={1} />
       </lineSegments>
       
       {/* Tank contents */}

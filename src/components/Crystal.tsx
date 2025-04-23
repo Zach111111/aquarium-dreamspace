@@ -96,7 +96,10 @@ export function Crystal({
     };
   }, [material]);
 
-  const handlePointerDown = () => {
+  const handlePointerDown = (e) => {
+    // Stop event propagation to prevent it from reaching objects behind
+    e.stopPropagation();
+    
     if (isExploding) return;
     
     setIsExploding(true);
@@ -131,18 +134,29 @@ export function Crystal({
       position={position}
       rotation={rotation}
       onPointerDown={handlePointerDown}
-      onPointerOver={() => {
+      onPointerOver={(e) => {
+        e.stopPropagation();
         document.body.style.cursor = 'pointer';
         setIsHovered(true);
       }}
-      onPointerOut={() => {
+      onPointerOut={(e) => {
+        e.stopPropagation();
         document.body.style.cursor = 'default';
         setIsHovered(false);
       }}
       scale={[finalScale, finalScale, finalScale]}
+      renderOrder={10} // Higher render order to ensure it renders on top
     >
       <octahedronGeometry args={[0.5, 0]} />
-      <primitive object={material} />
+      <meshStandardMaterial 
+        color={color}
+        emissive={color}
+        emissiveIntensity={isHovered ? 0.6 : 0.3}
+        roughness={0.2}
+        metalness={0.8}
+        transparent={true}
+        opacity={1}
+      />
     </mesh>
   );
 }
