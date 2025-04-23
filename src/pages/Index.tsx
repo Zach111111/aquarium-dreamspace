@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import { AquariumScene } from '../components/AquariumScene';
 import { useAquariumStore } from '../store/aquariumStore';
 import { toast } from "@/components/ui/use-toast";
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [renderError, setRenderError] = useState(false);
   const isMenuOpen = useAquariumStore(state => state.isMenuOpen);
   
   // Simulate loading progress with shorter timing
@@ -31,6 +33,15 @@ const Index = () => {
   const skipLoading = () => {
     setIsLoading(false);
     console.log("Loading skipped, showing aquarium scene");
+  };
+
+  const handleSceneError = () => {
+    setRenderError(true);
+    toast({
+      title: "Rendering Error",
+      description: "There was an issue with the 3D scene. Showing simplified view.",
+      variant: "destructive"
+    });
   };
 
   return (
@@ -60,7 +71,25 @@ const Index = () => {
         <>
           {/* 3D Canvas Background - z-index 0 */}
           <div className="absolute inset-0 z-0">
-            <AquariumScene />
+            <ErrorBoundary>
+              <AquariumScene />
+            </ErrorBoundary>
+            
+            {/* Fallback if scene fails to render */}
+            {renderError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[#1A1F2C]">
+                <div className="text-white text-center p-4">
+                  <h2 className="text-xl mb-2">3D Rendering Issue</h2>
+                  <p>We encountered a problem with the 3D scene.</p>
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-4 py-2 bg-cyan-600 rounded hover:bg-cyan-700"
+                  >
+                    Refresh Page
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* UI Overlay - z-index 1 */}

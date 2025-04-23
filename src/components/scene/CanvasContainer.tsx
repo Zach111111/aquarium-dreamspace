@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -12,6 +12,48 @@ interface CanvasContainerProps {
 
 export function CanvasContainer({ children, onError }: CanvasContainerProps) {
   const [renderFailed, setRenderFailed] = useState(false);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  
+  // Monitor for WebGL context loss
+  useEffect(() => {
+    const container = canvasRef.current;
+    if (!container) return;
+    
+    // Find canvas inside the container after mounting
+    const findCanvasAndAddListeners = () => {
+      const canvas = container.querySelector('canvas');
+      if (!canvas) {
+        // If canvas isn't ready yet, try again soon
+        setTimeout(findCanvasAndAddListeners, 100);
+        return;
+      }
+      
+      const handleContextLost = (e: Event) => {
+        e.preventDefault();
+        console.warn('WebGL context lost event triggered');
+        
+        toast({
+          title: "Rendering Issue",
+          description: "WebGL context was lost. Trying to recover...",
+          variant: "destructive"
+        });
+        
+        setRenderFailed(true);
+        if (onError) {
+          onError(e as unknown as React.SyntheticEvent);
+        }
+      };
+      
+      canvas.addEventListener('webglcontextlost', handleContextLost);
+      
+      return () => {
+        canvas.removeEventListener('webglcontextlost', handleContextLost);
+      };
+    };
+    
+    const cleanup = findCanvasAndAddListeners();
+    return cleanup;
+  }, [onError]);
   
   const handleCanvasError = (event: React.SyntheticEvent) => {
     console.error("Canvas render error:", event);
@@ -27,7 +69,7 @@ export function CanvasContainer({ children, onError }: CanvasContainerProps) {
   };
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
+    <div ref={canvasRef} className="relative w-full h-full overflow-hidden">
       <Canvas 
         className="absolute inset-0"
         style={{ background: '#1A1F2C' }}
@@ -47,7 +89,7 @@ export function CanvasContainer({ children, onError }: CanvasContainerProps) {
           
           const resize = () => {
             gl.setSize(window.innerWidth, window.innerHeight);
-            if (camera instanceof THREE.PerspectiveCamera) {
+            if ('aspect' in camera) {
               camera.aspect = window.innerWidth / window.innerHeight;
               camera.updateProjectionMatrix();
             }

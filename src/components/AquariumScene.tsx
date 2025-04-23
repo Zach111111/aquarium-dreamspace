@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CanvasContainer } from './scene/CanvasContainer';
 import { DebugCube } from './scene/DebugCube';
@@ -9,10 +9,19 @@ import { AudioReactiveElements } from './AudioReactiveElements';
 export function AquariumScene() {
   const [showDebugCube, setShowDebugCube] = useState(false);
   const [useSimpleMode, setUseSimpleMode] = useState(true);
+  const [renderAttempt, setRenderAttempt] = useState(0);
+
+  // Recovery mechanism
+  useEffect(() => {
+    if (renderAttempt > 0) {
+      console.log(`AquariumScene: Recovery attempt ${renderAttempt}`);
+    }
+  }, [renderAttempt]);
 
   const handleRenderError = () => {
     console.warn("Render error detected, using simple mode");
     setUseSimpleMode(true);
+    setRenderAttempt(prev => prev + 1);
 
     toast({
       title: "Rendering Issue Detected",

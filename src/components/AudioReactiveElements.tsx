@@ -8,6 +8,7 @@ import { MinimalCrystal } from './minimal/MinimalCrystal';
 import WaterTank from './WaterTank';
 import { ErrorBoundary } from './ErrorBoundary';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
+import { Lighting } from './Lighting';
 
 interface AudioReactiveElementsProps {
   mousePosition: any;
@@ -97,6 +98,7 @@ export function AudioReactiveElements({
       />
       <ambientLight intensity={0.6} />
       <pointLight position={[10, 10, 10]} intensity={0.8} />
+      <Lighting />
       
       <WaterTank size={tankSize} audioLevel={audioLevels.bass} useSimpleMaterial={simpleMaterials}>
         <ErrorBoundary>
