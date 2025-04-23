@@ -5,6 +5,7 @@ import { VHSOverlay } from '../components/VHSOverlay';
 import { ExploreMenu } from '../components/ExploreMenu';
 import { MenuButton } from '../components/MenuButton';
 import { WinScreen } from '../components/WinScreen';
+import { LoseScreen } from '../components/LoseScreen';
 import { useAquariumStore } from '../store/aquariumStore';
 
 const Index = () => {
@@ -12,6 +13,7 @@ const Index = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const isMenuOpen = useAquariumStore(state => state.isMenuOpen);
   const gameWon = useAquariumStore(state => state.gameWon);
+  const gameLost = useAquariumStore(state => state.gameLost);
   const [debugMode] = useState(false);
 
   useEffect(() => {
@@ -72,6 +74,7 @@ const Index = () => {
           <ExploreMenu isVisible={isMenuOpen} />
           
           {gameWon && <WinScreen />}
+          {gameLost && <LoseScreen />}
           
           <div className="absolute top-5 left-5 text-aquarium-white z-10">
             <h1 className="text-xl font-bold tracking-wider bg-black/30 px-3 py-1 rounded">
@@ -89,3 +92,4 @@ const Index = () => {
 };
 
 export default Index;
+

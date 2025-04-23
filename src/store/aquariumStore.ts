@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 
 interface AquariumState {
@@ -9,12 +10,14 @@ interface AquariumState {
   score: number;
   highScore: number;
   gameWon: boolean;
+  gameLost: boolean;
   setOrbitSpeed: (speed: number) => void;
   toggleColorShift: () => void;
   setMusicVolume: (volume: number) => void;
   toggleMenu: () => void;
   setSpeedFactor: (speed: number) => void;
   incrementScore: () => void;
+  decrementScore: () => void;
   resetScore: () => void;
   resetGame: () => void;
 }
@@ -28,6 +31,7 @@ export const useAquariumStore = create<AquariumState>((set) => ({
   score: 0,
   highScore: 0,
   gameWon: false,
+  gameLost: false,
   setOrbitSpeed: (speed) => set({ orbitSpeed: speed }),
   toggleColorShift: () => set((state) => ({ colorShift: !state.colorShift })),
   setMusicVolume: (volume) => set({ musicVolume: volume }),
@@ -41,10 +45,19 @@ export const useAquariumStore = create<AquariumState>((set) => ({
       gameWon: newScore >= 10
     };
   }),
+  decrementScore: () => set((state) => {
+    const newScore = state.score - 1;
+    return {
+      score: newScore,
+      gameLost: newScore < 0
+    };
+  }),
   resetScore: () => set({ score: 0 }),
   resetGame: () => set((state) => ({ 
     score: 0, 
     gameWon: false,
+    gameLost: false,
     highScore: state.highScore 
   })),
 }));
+

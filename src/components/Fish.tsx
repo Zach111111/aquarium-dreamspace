@@ -1,4 +1,3 @@
-
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group, Vector3, MathUtils } from 'three';
@@ -23,6 +22,7 @@ export function Fish({
 }: FishProps) {
   const fishRef = useRef<Group>(null);
   const speedFactor = useAquariumStore(state => state.speedFactor);
+  const decrementScore = useAquariumStore(state => state.decrementScore);
   
   // Calculate tank boundaries
   const [tankWidth, tankHeight, tankDepth] = tankSize;
@@ -83,9 +83,13 @@ export function Fish({
     }
   });
 
+  const handleClick = (event: any) => {
+    event.stopPropagation();
+    decrementScore();
+  };
+
   return (
-    <group ref={fishRef} position={initialPosition.toArray()}>
-      {/* Fish body */}
+    <group ref={fishRef} position={initialPosition.toArray()} onClick={handleClick}>
       <mesh scale={[scale, scale * 0.6, scale * 0.5]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 
@@ -96,7 +100,6 @@ export function Fish({
         />
       </mesh>
       
-      {/* Fish tail */}
       <mesh position={[-scale * 0.4, 0, 0]} scale={[scale * 0.4, scale * 0.3, scale * 0.2]}>
         <tetrahedronGeometry args={[0.5, 0]} />
         <meshStandardMaterial 
