@@ -9,6 +9,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [renderError, setRenderError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const isMenuOpen = useAquariumStore(state => state.isMenuOpen);
   
   // Simulate loading progress with shorter timing
@@ -36,12 +37,27 @@ const Index = () => {
   };
 
   const handleSceneError = () => {
+    console.error("Scene error detected");
     setRenderError(true);
     toast({
       title: "Rendering Error",
-      description: "There was an issue with the 3D scene. Showing simplified view.",
+      description: "There was an issue with the 3D scene. Trying to recover...",
       variant: "destructive"
     });
+    
+    // Auto retry once after a delay
+    if (retryCount < 2) {
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        setRenderError(false);
+        console.log(`Auto-retry attempt ${retryCount + 1}`);
+      }, 2000);
+    }
+  };
+
+  const handleManualRetry = () => {
+    setRenderError(false);
+    setRetryCount(prev => prev + 1);
   };
 
   return (
@@ -72,7 +88,7 @@ const Index = () => {
           {/* 3D Canvas Background - z-index 0 */}
           <div className="absolute inset-0 z-0">
             <ErrorBoundary>
-              <AquariumScene />
+              {!renderError && <AquariumScene key={`scene-${retryCount}`} />}
             </ErrorBoundary>
             
             {/* Fallback if scene fails to render */}
@@ -81,12 +97,20 @@ const Index = () => {
                 <div className="text-white text-center p-4">
                   <h2 className="text-xl mb-2">3D Rendering Issue</h2>
                   <p>We encountered a problem with the 3D scene.</p>
-                  <button 
-                    onClick={() => window.location.reload()}
-                    className="mt-4 px-4 py-2 bg-cyan-600 rounded hover:bg-cyan-700"
-                  >
-                    Refresh Page
-                  </button>
+                  <div className="flex justify-center gap-4 mt-4">
+                    <button 
+                      onClick={handleManualRetry}
+                      className="px-4 py-2 bg-cyan-600 rounded hover:bg-cyan-700"
+                    >
+                      Try Again
+                    </button>
+                    <button 
+                      onClick={() => window.location.reload()}
+                      className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700"
+                    >
+                      Refresh Page
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

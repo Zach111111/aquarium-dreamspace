@@ -24,8 +24,8 @@ export function CanvasContainer({ children, onError }: CanvasContainerProps) {
       const canvas = container.querySelector('canvas');
       if (!canvas) {
         // If canvas isn't ready yet, try again soon
-        setTimeout(findCanvasAndAddListeners, 100);
-        return;
+        const timeoutId = setTimeout(findCanvasAndAddListeners, 100);
+        return () => clearTimeout(timeoutId);
       }
       
       const handleContextLost = (e: Event) => {
@@ -81,15 +81,16 @@ export function CanvasContainer({ children, onError }: CanvasContainerProps) {
           depth: true,
           failIfMajorPerformanceCaveat: false
         }}
-        dpr={0.6}
+        dpr={0.5} // Lower resolution for better performance
         frameloop="demand"
         onCreated={({ gl, camera }) => {
           gl.setClearColor(new THREE.Color('#1A1F2C'));
           console.log("Canvas created successfully");
           
+          // Only update camera aspect if it's a PerspectiveCamera
           const resize = () => {
             gl.setSize(window.innerWidth, window.innerHeight);
-            if ('aspect' in camera) {
+            if (camera.type === 'PerspectiveCamera') {
               camera.aspect = window.innerWidth / window.innerHeight;
               camera.updateProjectionMatrix();
             }

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CanvasContainer } from './scene/CanvasContainer';
 import { DebugCube } from './scene/DebugCube';
@@ -10,6 +10,13 @@ export function AquariumScene() {
   const [showDebugCube, setShowDebugCube] = useState(false);
   const [useSimpleMode, setUseSimpleMode] = useState(true);
   const [renderAttempt, setRenderAttempt] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Track mounted state to prevent state updates after unmount
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   // Recovery mechanism
   useEffect(() => {
@@ -20,14 +27,17 @@ export function AquariumScene() {
 
   const handleRenderError = () => {
     console.warn("Render error detected, using simple mode");
-    setUseSimpleMode(true);
-    setRenderAttempt(prev => prev + 1);
-
-    toast({
-      title: "Rendering Issue Detected",
-      description: "Switched to simplified mode for better compatibility",
-      variant: "default"
-    });
+    
+    if (isMounted) {
+      setUseSimpleMode(true);
+      setRenderAttempt(prev => prev + 1);
+      
+      toast({
+        title: "Rendering Issue Detected",
+        description: "Switched to simplified mode for better compatibility",
+        variant: "default"
+      });
+    }
   };
 
   // Pre-define data for the scene with improved positions
@@ -72,7 +82,12 @@ export function AquariumScene() {
   return (
     <ErrorBoundary>
       <CanvasContainer onError={handleRenderError}>
-        <React.Suspense fallback={null}>
+        <Suspense fallback={
+          <mesh position={[0, 0, 0]}>
+            <sphereGeometry args={[1, 8, 8]} />
+            <meshBasicMaterial color="#8EDFFF" wireframe />
+          </mesh>
+        }>
           {showDebugCube && <DebugCube visible={true} />}
           
           <AudioReactiveElements
@@ -82,7 +97,7 @@ export function AquariumScene() {
             plantPositions={plantPositions}
             crystalData={crystalData}
           />
-        </React.Suspense>
+        </Suspense>
       </CanvasContainer>
     </ErrorBoundary>
   );
