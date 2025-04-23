@@ -1,15 +1,14 @@
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useFrame } from '@react-three/fiber';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import * as THREE from 'three';
 import { WaterTank } from './WaterTank';
 import { Fish } from './Fish';
 import { Plant } from './Plant';
 import { Crystal } from './Crystal';
 import { Particles } from './Particles';
+import { ParticlesUpdater } from './ParticlesUpdater';
 import { PostProcessing } from './PostProcessing';
 import { audioManager } from '../utils/audio';
-import { random } from '../utils/noise';
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
 import { toast } from "@/components/ui/use-toast";
@@ -67,6 +66,19 @@ export function AudioReactiveElements({
     particles: true,
     postprocessing: true
   });
+  
+  const particlesRef = useRef<THREE.Points>(null);
+  const particleVelocitiesRef = useRef<THREE.Vector3[]>([]);
+  const particleCount = simpleMaterials ? 30 : 50;
+
+  // Initialize velocities for particles
+  useEffect(() => {
+    particleVelocitiesRef.current = Array(particleCount).fill(0).map(() => new THREE.Vector3(
+      (Math.random() - 0.5) * 0.01,
+      (Math.random() - 0.5) * 0.01,
+      (Math.random() - 0.5) * 0.01
+    ));
+  }, [particleCount]);
 
   // Initialize audio on user interaction
   useEffect(() => {
@@ -106,25 +118,40 @@ export function AudioReactiveElements({
     };
   }, [audioInitialized, audioFailed]);
 
-  // Safely get audio levels
-  useFrame(() => {
-    if (!audioInitialized || audioFailed) return;
+  // Get audio levels from context - this runs inside Canvas so it's safe
+  React.useEffect(() => {
+    let isMounted = true;
     
-    try {
-      const levels = audioManager.getAudioLevels();
-      setAudioLevels(levels);
-    } catch (error) {
-      // Silent fail with default values
-      setAudioLevels({ bass: 0, mid: 0, treble: 0 });
-    }
-  });
+    const updateAudioLevels = () => {
+      if (!audioInitialized || audioFailed || !isMounted) return;
+      
+      try {
+        const levels = audioManager.getAudioLevels();
+        setAudioLevels(levels);
+      } catch (error) {
+        // Silent fail with default values
+        setAudioLevels({ bass: 0, mid: 0, treble: 0 });
+      }
+      
+      requestAnimationFrame(updateAudioLevels);
+    };
+    
+    updateAudioLevels();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [audioInitialized, audioFailed]);
   
   // Check for low performance and toggle simple materials
   useEffect(() => {
     let frameCount = 0;
     let lastTime = performance.now();
+    let isMounted = true;
     
     const checkPerformance = () => {
+      if (!isMounted) return;
+      
       frameCount++;
       const now = performance.now();
       
@@ -150,7 +177,10 @@ export function AudioReactiveElements({
     };
     
     const handle = requestAnimationFrame(checkPerformance);
-    return () => cancelAnimationFrame(handle);
+    return () => {
+      isMounted = false;
+      cancelAnimationFrame(handle);
+    };
   }, [simpleMaterials]);
 
   // Component error handlers
@@ -230,12 +260,25 @@ export function AudioReactiveElements({
       <ErrorBoundary>
         <Suspense fallback={null}>
           {componentStatus.particles && (
-            <Particles
-              count={simpleMaterials ? 30 : 50}
-              tankSize={tankSize}
-              mousePosition={mousePosition}
-              audioLevel={audioLevels.bass}
-            />
+            <>
+              <Particles
+                ref={particlesRef}
+                count={particleCount}
+                tankSize={tankSize}
+                mousePosition={mousePosition}
+                audioLevel={audioLevels.bass}
+              />
+              {particlesRef.current && particleVelocitiesRef.current.length > 0 && (
+                <ParticlesUpdater
+                  particlesRef={particlesRef}
+                  velocities={particleVelocitiesRef.current}
+                  tankSize={tankSize}
+                  mousePosition={mousePosition}
+                  audioLevel={audioLevels.bass}
+                  size={0.05}
+                />
+              )}
+            </>
           )}
         </Suspense>
       </ErrorBoundary>

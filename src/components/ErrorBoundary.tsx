@@ -64,7 +64,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     }
 
     // Clone the children with a dynamic key for retry forcing if needed
-    return React.cloneElement(this.props.children as React.ReactElement, {
+    return React.cloneElement(React.Children.only(this.props.children) as React.ReactElement, {
       key: `scene-${this.state.retryCount}`
     });
   }
