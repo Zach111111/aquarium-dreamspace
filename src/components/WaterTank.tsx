@@ -101,10 +101,9 @@ export function WaterTank({ size, children, audioLevel = 0 }: WaterTankProps) {
   };
 
   const wallThickness = 0.25;
-  const insetFactor = 0.125;
 
   // For debugging purposes
-  const useSimpleMaterial = true;
+  const useSimpleMaterial = false;
 
   return (
     <group>
