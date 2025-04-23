@@ -1,6 +1,5 @@
-
 import { useRef, useMemo, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Group, Vector3, MathUtils } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
@@ -33,7 +32,6 @@ export function Fish({
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
   
-  // Calculate tank boundaries
   const [tankWidth, tankHeight, tankDepth] = tankSize;
   const bounds = {
     minX: -(tankWidth/2) * 0.8,
@@ -57,7 +55,6 @@ export function Fish({
     verticalFactor: 0.3 + Math.random() * 0.7
   }), [index]);
 
-  // Body and tail materials
   const bodyMaterial = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       color: color,
@@ -82,7 +79,6 @@ export function Fish({
     const time = clock.getElapsedTime();
     const actualSpeed = speed * speedFactor;
     
-    // Calculate base position with group offset
     const phase = time * movementParams.frequency * actualSpeed + movementParams.phaseOffset;
     
     const targetPos = new Vector3(
@@ -91,22 +87,18 @@ export function Fish({
       initialPosition.z + Math.cos(phase * 0.7) * 5 + groupOffset.z
     );
     
-    // Apply boundary limits
     targetPos.x = MathUtils.clamp(targetPos.x, bounds.minX, bounds.maxX);
     targetPos.y = MathUtils.clamp(targetPos.y, bounds.minY, bounds.maxY);
     targetPos.z = MathUtils.clamp(targetPos.z, bounds.minZ, bounds.maxZ);
     
-    // Smooth movement
     fishRef.current.position.lerp(targetPos, 0.02 * actualSpeed);
     
-    // Fish rotation
     const direction = new Vector3().subVectors(targetPos, fishRef.current.position).normalize();
     if (direction.length() > 0.1) {
       fishRef.current.lookAt(fishRef.current.position.clone().add(direction));
       fishRef.current.rotation.z = Math.sin(time * 3 * speedFactor) * 0.2;
     }
 
-    // Update materials based on hover state
     if (bodyRef.current && bodyRef.current.material) {
       const material = bodyRef.current.material as THREE.MeshStandardMaterial;
       material.emissiveIntensity = isHovered ? 0.5 : 0.2;
@@ -119,15 +111,13 @@ export function Fish({
       material.color.set(isClicked ? '#ff6666' : color);
     }
 
-    // Reset click animation after short time
     if (isClicked) {
       setTimeout(() => setIsClicked(false), 300);
     }
   });
 
-  const handlePointerDown = (e: THREE.Event) => {
-    // Stop event propagation to prevent it from reaching objects behind
-    e.stopPropagation();
+  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
+    e.nativeEvent.stopPropagation();
     
     decrementScore();
     setIsClicked(true);
@@ -143,9 +133,8 @@ export function Fish({
     <group 
       ref={fishRef} 
       position={initialPosition.toArray()}
-      renderOrder={5} // Set a high render order for better visibility
+      renderOrder={5}
     >
-      {/* Fish body */}
       <mesh 
         ref={bodyRef}
         scale={[1, 0.6, 0.5]}
@@ -170,7 +159,6 @@ export function Fish({
         />
       </mesh>
       
-      {/* Fish tail */}
       <mesh 
         ref={tailRef}
         position={[-0.4, 0, 0]} 
