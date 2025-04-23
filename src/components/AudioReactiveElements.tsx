@@ -55,7 +55,6 @@ export function AudioReactiveElements({
 }: AudioReactiveElementsProps) {
   const [audioLevels, setAudioLevels] = useState({ bass: 0, mid: 0, treble: 0 });
   const [audioInitialized, setAudioInitialized] = useState(false);
-  const [audioFailed, setAudioFailed] = useState(false);
   const [simpleMaterials, setSimpleMaterials] = useState(false);
   const [componentStatus, setComponentStatus] = useState({
     fish: true,
@@ -77,115 +76,15 @@ export function AudioReactiveElements({
     ));
   }, [particleCount]);
 
-  useEffect(() => {
-    const initAudio = () => {
-      if (audioInitialized || audioFailed) return;
-      
-      try {
-        audioManager.initialize('/audio/main_theme.wav');
-        audioManager.play();
-        audioManager.setVolume(0.5); // Default volume
-        setAudioInitialized(true);
-        console.log("✅ Audio initialized successfully");
-      } catch (error) {
-        console.error('Failed to initialize audio:', error);
-        setAudioFailed(true);
-        toast({
-          title: "Audio Error",
-          description: "Failed to initialize audio. Some features may be limited.",
-          variant: "destructive"
-        });
-      }
-    };
-    
-    const handleInteraction = () => {
-      initAudio();
-      window.removeEventListener('click', handleInteraction);
-      window.removeEventListener('keydown', handleInteraction);
-    };
-    
-    window.addEventListener('click', handleInteraction);
-    window.addEventListener('keydown', handleInteraction);
-    
-    return () => {
-      window.removeEventListener('click', handleInteraction);
-      window.removeEventListener('keydown', handleInteraction);
-    };
-  }, [audioInitialized, audioFailed]);
-
-  React.useEffect(() => {
-    let isMounted = true;
-    
-    const updateAudioLevels = () => {
-      if (!audioInitialized || audioFailed || !isMounted) return;
-      
-      try {
-        const levels = audioManager.getAudioLevels();
-        setAudioLevels(levels);
-      } catch (error) {
-        setAudioLevels({ bass: 0, mid: 0, treble: 0 });
-      }
-      
-      requestAnimationFrame(updateAudioLevels);
-    };
-    
-    updateAudioLevels();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [audioInitialized, audioFailed]);
-  
-  useEffect(() => {
-    let frameCount = 0;
-    let lastTime = performance.now();
-    let isMounted = true;
-    
-    const checkPerformance = () => {
-      if (!isMounted) return;
-      
-      frameCount++;
-      const now = performance.now();
-      
-      if (now - lastTime >= 1000) {
-        const fps = frameCount;
-        frameCount = 0;
-        lastTime = now;
-        
-        if (fps < 30 && !simpleMaterials) {
-          console.log('Low FPS detected, switching to simple materials');
-          setSimpleMaterials(true);
-          toast({
-            title: "Performance Mode Enabled",
-            description: "Switched to simpler materials for better performance.",
-          });
-        } else if (fps > 50 && simpleMaterials) {
-          console.log('Performance improved, using advanced materials');
-          setSimpleMaterials(false);
-        }
-      }
-      
-      requestAnimationFrame(checkPerformance);
-    };
-    
-    const handle = requestAnimationFrame(checkPerformance);
-    return () => {
-      isMounted = false;
-      cancelAnimationFrame(handle);
-    };
-  }, [simpleMaterials]);
-
-  const handleComponentError = (component: keyof typeof componentStatus) => {
-    setComponentStatus(prev => ({ ...prev, [component]: false }));
-    console.error(`${component} component failed to render`);
-    
-    setTimeout(() => {
-      setComponentStatus(prev => ({ ...prev, [component]: true }));
-    }, 5000);
-  };
-
   return (
     <WaterTank size={tankSize} audioLevel={audioLevels.bass} useSimpleMaterial={simpleMaterials}>
+      <AquariumInitializer onAudioInit={(initialized) => setAudioInitialized(initialized)} />
+      <PerformanceMonitor onPerformanceChange={(simple) => setSimpleMaterials(simple)} />
+      <AudioLevelMonitor 
+        audioInitialized={audioInitialized}
+        onLevelsChange={setAudioLevels}
+      />
+
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
           {componentStatus.fish && fishData.map((fish, i) => (
