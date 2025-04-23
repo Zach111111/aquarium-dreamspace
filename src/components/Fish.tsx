@@ -1,9 +1,11 @@
-import { useRef, useMemo, useState } from 'react';
-import { useFrame, ThreeEvent } from '@react-three/fiber';
-import * as THREE from 'three';
-import { Group, Vector3, MathUtils } from 'three';
+
+import { useState, useMemo } from 'react';
+import { ThreeEvent } from '@react-three/fiber';
+import { Vector3, MathUtils } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
 import { toast } from "@/components/ui/use-toast";
+import { useFishMovement } from '../hooks/useFishMovement';
+import { FishBody, FishTail } from './FishMesh';
 
 interface FishProps {
   color?: string;
@@ -21,32 +23,17 @@ export function Fish({
   speed = 1,
   tankSize,
   index,
-  audioLevel = 0,
   groupOffset = { x: 0, y: 0, z: 0 }
 }: FishProps) {
-  const fishRef = useRef<Group>(null);
-  const bodyRef = useRef<THREE.Mesh>(null);
-  const tailRef = useRef<THREE.Mesh>(null);
-  const speedFactor = useAquariumStore(state => state.speedFactor);
-  const decrementScore = useAquariumStore(state => state.decrementScore);
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
-  
-  const [tankWidth, tankHeight, tankDepth] = tankSize;
-  const bounds = {
-    minX: -(tankWidth/2) * 0.8,
-    maxX: (tankWidth/2) * 0.8,
-    minY: -(tankHeight/2) * 0.8,
-    maxY: (tankHeight/2) * 0.8,
-    minZ: -(tankDepth/2) * 0.8,
-    maxZ: (tankDepth/2) * 0.8
-  };
-  
+  const decrementScore = useAquariumStore(state => state.decrementScore);
+
   const initialPosition = useMemo(() => new Vector3(
-    MathUtils.lerp(bounds.minX, bounds.maxX, Math.random()),
-    MathUtils.lerp(bounds.minY, bounds.maxY, Math.random()),
-    MathUtils.lerp(bounds.minZ, bounds.maxZ, Math.random())
-  ), [bounds]);
+    MathUtils.lerp(-(tankSize[0]/2) * 0.8, (tankSize[0]/2) * 0.8, Math.random()),
+    MathUtils.lerp(-(tankSize[1]/2) * 0.8, (tankSize[1]/2) * 0.8, Math.random()),
+    MathUtils.lerp(-(tankSize[2]/2) * 0.8, (tankSize[2]/2) * 0.8, Math.random())
+  ), [tankSize]);
 
   const movementParams = useMemo(() => ({
     amplitude: 0.01 + Math.random() * 0.01,
@@ -55,70 +42,16 @@ export function Fish({
     verticalFactor: 0.3 + Math.random() * 0.7
   }), [index]);
 
-  const bodyMaterial = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: color,
-      emissive: color,
-      emissiveIntensity: 0.2,
-      roughness: 0.4
-    });
-  }, [color]);
-
-  const tailMaterial = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: color,
-      emissive: color,
-      emissiveIntensity: 0.2,
-      roughness: 0.4
-    });
-  }, [color]);
-
-  useFrame(({ clock }) => {
-    if (!fishRef.current) return;
-    
-    const time = clock.getElapsedTime();
-    const actualSpeed = speed * speedFactor;
-    
-    const phase = time * movementParams.frequency * actualSpeed + movementParams.phaseOffset;
-    
-    const targetPos = new Vector3(
-      initialPosition.x + Math.sin(phase) * 6 + groupOffset.x,
-      initialPosition.y + Math.sin(phase * movementParams.verticalFactor) * 4 + groupOffset.y,
-      initialPosition.z + Math.cos(phase * 0.7) * 5 + groupOffset.z
-    );
-    
-    targetPos.x = MathUtils.clamp(targetPos.x, bounds.minX, bounds.maxX);
-    targetPos.y = MathUtils.clamp(targetPos.y, bounds.minY, bounds.maxY);
-    targetPos.z = MathUtils.clamp(targetPos.z, bounds.minZ, bounds.maxZ);
-    
-    fishRef.current.position.lerp(targetPos, 0.02 * actualSpeed);
-    
-    const direction = new Vector3().subVectors(targetPos, fishRef.current.position).normalize();
-    if (direction.length() > 0.1) {
-      fishRef.current.lookAt(fishRef.current.position.clone().add(direction));
-      fishRef.current.rotation.z = Math.sin(time * 3 * speedFactor) * 0.2;
-    }
-
-    if (bodyRef.current && bodyRef.current.material) {
-      const material = bodyRef.current.material as THREE.MeshStandardMaterial;
-      material.emissiveIntensity = isHovered ? 0.5 : 0.2;
-      material.color.set(isClicked ? '#ff6666' : color);
-    }
-
-    if (tailRef.current && tailRef.current.material) {
-      const material = tailRef.current.material as THREE.MeshStandardMaterial;
-      material.emissiveIntensity = isHovered ? 0.5 : 0.2;
-      material.color.set(isClicked ? '#ff6666' : color);
-    }
-
-    if (isClicked) {
-      setTimeout(() => setIsClicked(false), 300);
-    }
+  const { fishRef } = useFishMovement({
+    initialPosition,
+    movementParams,
+    speed,
+    tankSize,
+    groupOffset
   });
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.nativeEvent.stopPropagation();
-    
     decrementScore();
     setIsClicked(true);
     toast({
@@ -127,62 +60,39 @@ export function Fish({
       variant: "destructive",
       className: "compact-toast bg-[#1A1F2C] border-[#E5DEFF] text-[#E5DEFF]",
     });
+    setTimeout(() => setIsClicked(false), 300);
+  };
+
+  const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    document.body.style.cursor = 'pointer';
+    setIsHovered(true);
+  };
+
+  const handlePointerOut = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    document.body.style.cursor = 'default';
+    setIsHovered(false);
   };
 
   return (
-    <group 
-      ref={fishRef} 
-      position={initialPosition.toArray()}
-      renderOrder={5}
-    >
-      <mesh 
-        ref={bodyRef}
-        scale={[1, 0.6, 0.5]}
+    <group ref={fishRef} position={initialPosition.toArray()} renderOrder={5}>
+      <FishBody 
+        color={color}
+        isHovered={isHovered}
+        isClicked={isClicked}
         onPointerDown={handlePointerDown}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          document.body.style.cursor = 'pointer';
-          setIsHovered(true);
-        }}
-        onPointerOut={(e) => {
-          e.stopPropagation();
-          document.body.style.cursor = 'default';
-          setIsHovered(false);
-        }}
-      >
-        <tetrahedronGeometry args={[0.5, 0]} />
-        <meshStandardMaterial 
-          color={isClicked ? '#ff6666' : color} 
-          emissive={color} 
-          emissiveIntensity={isHovered ? 0.5 : 0.2}
-          roughness={0.4}
-        />
-      </mesh>
-      
-      <mesh 
-        ref={tailRef}
-        position={[-0.4, 0, 0]} 
-        scale={[0.4, 0.3, 0.2]}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      />
+      <FishTail 
+        color={color}
+        isHovered={isHovered}
+        isClicked={isClicked}
         onPointerDown={handlePointerDown}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          document.body.style.cursor = 'pointer';
-          setIsHovered(true);
-        }}
-        onPointerOut={(e) => {
-          e.stopPropagation();
-          document.body.style.cursor = 'default';
-          setIsHovered(false);
-        }}
-      >
-        <tetrahedronGeometry args={[0.5, 0]} />
-        <meshStandardMaterial 
-          color={isClicked ? '#ff6666' : color} 
-          emissive={color} 
-          emissiveIntensity={isHovered ? 0.5 : 0.2}
-          roughness={0.4}
-        />
-      </mesh>
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      />
     </group>
   );
 }
