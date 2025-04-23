@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { WaterTank } from './WaterTank';
@@ -10,6 +10,9 @@ import { Particles } from './Particles';
 import { PostProcessing } from './PostProcessing';
 import { audioManager } from '../utils/audio';
 import { random } from '../utils/noise';
+import { ErrorBoundary } from './ErrorBoundary';
+import { LoadingFallback } from './LoadingFallback';
+import { toast } from "@/components/ui/use-toast";
 
 interface AudioReactiveElementsProps {
   mousePosition: THREE.Vector3 | null;
@@ -24,6 +27,28 @@ interface AudioReactiveElementsProps {
   }>;
 }
 
+// Fallback components
+const MinimalFish = ({ tankSize, index }: { tankSize: [number, number, number], index: number }) => (
+  <mesh position={[(Math.random() - 0.5) * 5, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 5]}>
+    <tetrahedronGeometry args={[0.5, 0]} />
+    <meshBasicMaterial color={`hsl(${index * 36 + 180}, 70%, ${50 + index * 5}%)`} />
+  </mesh>
+);
+
+const MinimalPlant = ({ position }: { position: [number, number, number] }) => (
+  <mesh position={position}>
+    <cylinderGeometry args={[0.1, 0.2, 1.5, 4]} />
+    <meshBasicMaterial color="green" />
+  </mesh>
+);
+
+const MinimalCrystal = ({ position }: { position: [number, number, number] }) => (
+  <mesh position={position}>
+    <octahedronGeometry args={[0.4, 0]} />
+    <meshBasicMaterial color="cyan" />
+  </mesh>
+);
+
 export function AudioReactiveElements({
   mousePosition,
   tankSize,
@@ -33,20 +58,35 @@ export function AudioReactiveElements({
 }: AudioReactiveElementsProps) {
   const [audioLevels, setAudioLevels] = useState({ bass: 0, mid: 0, treble: 0 });
   const [audioInitialized, setAudioInitialized] = useState(false);
+  const [audioFailed, setAudioFailed] = useState(false);
   const [simpleMaterials, setSimpleMaterials] = useState(false);
+  const [componentStatus, setComponentStatus] = useState({
+    fish: true,
+    plants: true,
+    crystals: true,
+    particles: true,
+    postprocessing: true
+  });
 
   // Initialize audio on user interaction
   useEffect(() => {
     const initAudio = () => {
-      if (audioInitialized) return;
+      if (audioInitialized || audioFailed) return;
       
       try {
         audioManager.initialize('/audio/main_theme.wav');
         audioManager.play();
         audioManager.setVolume(0.5); // Default volume
         setAudioInitialized(true);
+        console.log("✅ Audio initialized successfully");
       } catch (error) {
         console.error('Failed to initialize audio:', error);
+        setAudioFailed(true);
+        toast({
+          title: "Audio Error",
+          description: "Failed to initialize audio. Some features may be limited.",
+          variant: "destructive"
+        });
       }
     };
     
@@ -64,11 +104,11 @@ export function AudioReactiveElements({
       window.removeEventListener('click', handleInteraction);
       window.removeEventListener('keydown', handleInteraction);
     };
-  }, [audioInitialized]);
+  }, [audioInitialized, audioFailed]);
 
   // Safely get audio levels
   useFrame(() => {
-    if (!audioInitialized) return;
+    if (!audioInitialized || audioFailed) return;
     
     try {
       const levels = audioManager.getAudioLevels();
@@ -96,6 +136,10 @@ export function AudioReactiveElements({
         if (fps < 30 && !simpleMaterials) {
           console.log('Low FPS detected, switching to simple materials');
           setSimpleMaterials(true);
+          toast({
+            title: "Performance Mode Enabled",
+            description: "Switched to simpler materials for better performance.",
+          });
         } else if (fps > 50 && simpleMaterials) {
           console.log('Performance improved, using advanced materials');
           setSimpleMaterials(false);
@@ -109,54 +153,101 @@ export function AudioReactiveElements({
     return () => cancelAnimationFrame(handle);
   }, [simpleMaterials]);
 
+  // Component error handlers
+  const handleComponentError = (component: keyof typeof componentStatus) => {
+    setComponentStatus(prev => ({ ...prev, [component]: false }));
+    console.error(`${component} component failed to render`);
+    
+    // Try to recover after a delay
+    setTimeout(() => {
+      setComponentStatus(prev => ({ ...prev, [component]: true }));
+    }, 5000);
+  };
+
   return (
     <WaterTank size={tankSize} audioLevel={audioLevels.bass} useSimpleMaterial={simpleMaterials}>
-      {/* All fish */}
-      {fishData.map((fish, i) => (
-        <Fish
-          key={`fish-${i}`}
-          color={fish.color}
-          scale={fish.scale}
-          speed={fish.speed}
-          tankSize={tankSize}
-          index={i}
-          audioLevel={audioLevels.mid}
-        />
-      ))}
+      {/* Fish with error boundaries */}
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>
+          {componentStatus.fish && fishData.map((fish, i) => (
+            <ErrorBoundary key={`fish-boundary-${i}`}>
+              <Suspense fallback={<MinimalFish tankSize={tankSize} index={i} />}>
+                <Fish
+                  key={`fish-${i}`}
+                  color={fish.color}
+                  scale={fish.scale}
+                  speed={fish.speed}
+                  tankSize={tankSize}
+                  index={i}
+                  audioLevel={audioLevels.mid}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          ))}
+        </Suspense>
+      </ErrorBoundary>
       
-      {/* Plants */}
-      {plantPositions.map((position, i) => (
-        <Plant
-          key={`plant-${i}`}
-          position={position}
-          height={1.5 + Math.random() * 1.5}
-          color={`hsl(${120 + Math.random() * 40}, 70%, 60%)`}
-          audioLevel={audioLevels.treble}
-        />
-      ))}
+      {/* Plants with error boundaries */}
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>
+          {componentStatus.plants && plantPositions.map((position, i) => (
+            <ErrorBoundary key={`plant-boundary-${i}`}>
+              <Suspense fallback={<MinimalPlant position={position} />}>
+                <Plant
+                  key={`plant-${i}`}
+                  position={position}
+                  height={1.5 + Math.random() * 1.5}
+                  color={`hsl(${120 + Math.random() * 40}, 70%, 60%)`}
+                  audioLevel={audioLevels.treble}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          ))}
+        </Suspense>
+      </ErrorBoundary>
       
-      {/* Crystals */}
-      {crystalData.map((crystal, i) => (
-        <Crystal
-          key={`crystal-${i}`}
-          position={crystal.position}
-          rotation={crystal.rotation}
-          color={crystal.color}
-          height={crystal.height}
-          audioLevel={audioLevels.treble}
-        />
-      ))}
+      {/* Crystals with error boundaries */}
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>
+          {componentStatus.crystals && crystalData.map((crystal, i) => (
+            <ErrorBoundary key={`crystal-boundary-${i}`}>
+              <Suspense fallback={<MinimalCrystal position={crystal.position} />}>
+                <Crystal
+                  key={`crystal-${i}`}
+                  position={crystal.position}
+                  rotation={crystal.rotation}
+                  color={crystal.color}
+                  height={crystal.height}
+                  audioLevel={audioLevels.treble}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          ))}
+        </Suspense>
+      </ErrorBoundary>
       
-      {/* Particles */}
-      <Particles
-        count={50} // Reduced count for better performance
-        tankSize={tankSize}
-        mousePosition={mousePosition}
-        audioLevel={audioLevels.bass}
-      />
+      {/* Particles with error boundary */}
+      <ErrorBoundary>
+        <Suspense fallback={null}>
+          {componentStatus.particles && (
+            <Particles
+              count={simpleMaterials ? 30 : 50}
+              tankSize={tankSize}
+              mousePosition={mousePosition}
+              audioLevel={audioLevels.bass}
+            />
+          )}
+        </Suspense>
+      </ErrorBoundary>
       
-      {/* Post-processing */}
-      <PostProcessing audioLevel={audioLevels.mid} />
+      {/* Post-processing with error boundary */}
+      <ErrorBoundary>
+        <Suspense fallback={null}>
+          {componentStatus.postprocessing && (
+            <PostProcessing audioLevel={audioLevels.mid} />
+          )}
+        </Suspense>
+      </ErrorBoundary>
     </WaterTank>
   );
 }

@@ -1,5 +1,5 @@
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
@@ -25,6 +25,7 @@ export function WaterTank({
   
   // Auto-detect if we need to use simple materials
   const [shouldUseSimpleMaterial, setShouldUseSimpleMaterial] = useState(useSimpleMaterial);
+  const [materialFailure, setMaterialFailure] = useState(false);
   
   // Performance monitoring
   useEffect(() => {
@@ -56,21 +57,96 @@ export function WaterTank({
     return () => cancelAnimationFrame(handle);
   }, [shouldUseSimpleMaterial]);
 
-  // Basic interaction
+  // Basic interaction with safe error handling
   const handlePointerDown = () => {
-    toggleMenu();
+    try {
+      toggleMenu();
+    } catch (error) {
+      console.error("Error in menu toggle:", error);
+    }
   };
+
+  // Material creation with error handling
+  const waterMaterial = useMemo(() => {
+    try {
+      if (shouldUseSimpleMaterial || materialFailure) {
+        return new THREE.MeshBasicMaterial({
+          color: "#66ccff",
+          transparent: true,
+          opacity: 0.2,
+          side: THREE.DoubleSide
+        });
+      } else {
+        return new THREE.MeshPhysicalMaterial({
+          color: "#66ccff",
+          transparent: true,
+          opacity: 0.2,
+          transmission: 0.95,
+          thickness: 0.5,
+          roughness: 0.1,
+          ior: 1.33,
+          side: THREE.DoubleSide
+        });
+      }
+    } catch (error) {
+      console.error("Failed to create water material:", error);
+      setMaterialFailure(true);
+      return new THREE.MeshBasicMaterial({
+        color: "#66ccff",
+        transparent: true,
+        opacity: 0.2,
+        side: THREE.DoubleSide
+      });
+    }
+  }, [shouldUseSimpleMaterial, materialFailure]);
+
+  const glassMaterial = useMemo(() => {
+    try {
+      if (shouldUseSimpleMaterial || materialFailure) {
+        return new THREE.MeshBasicMaterial({
+          color: "#F6F7FF",
+          transparent: true,
+          opacity: 0.2,
+          side: THREE.BackSide
+        });
+      } else {
+        return new THREE.MeshPhysicalMaterial({
+          color: "#F6F7FF",
+          transparent: true,
+          opacity: 0.2,
+          transmission: 0.95,
+          thickness: 0.25,
+          roughness: 0.05,
+          ior: 1.52,
+          side: THREE.BackSide
+        });
+      }
+    } catch (error) {
+      console.error("Failed to create glass material:", error);
+      setMaterialFailure(true);
+      return new THREE.MeshBasicMaterial({
+        color: "#F6F7FF",
+        transparent: true,
+        opacity: 0.2,
+        side: THREE.BackSide
+      });
+    }
+  }, [shouldUseSimpleMaterial, materialFailure]);
 
   useFrame(({ clock }) => {
     if (!waterRef.current) return;
     
-    // Simple water animation
-    const time = clock.getElapsedTime();
-    waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.05;
-    
-    // Audio-reactive water movement
-    if (audioLevel > 0.1) {
-      waterRef.current.position.y = Math.sin(time * 2) * audioLevel * 0.2;
+    try {
+      // Simple water animation
+      const time = clock.getElapsedTime();
+      waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.05;
+      
+      // Audio-reactive water movement
+      if (audioLevel > 0.1) {
+        waterRef.current.position.y = Math.sin(time * 2) * audioLevel * 0.2;
+      }
+    } catch (error) {
+      console.error("Water animation error:", error);
     }
   });
 
@@ -86,25 +162,7 @@ export function WaterTank({
         onPointerDown={handlePointerDown}
       >
         <boxGeometry args={[width * 0.98, height * 0.98, depth * 0.98]} />
-        {shouldUseSimpleMaterial ? (
-          <meshBasicMaterial
-            color="#66ccff"
-            transparent
-            opacity={0.2}
-            side={THREE.DoubleSide}
-          />
-        ) : (
-          <meshPhysicalMaterial
-            color="#66ccff"
-            transparent
-            opacity={0.2}
-            transmission={0.95}
-            thickness={0.5}
-            roughness={0.1}
-            ior={1.33} // Water IOR
-            side={THREE.DoubleSide}
-          />
-        )}
+        {waterMaterial}
       </mesh>
       
       {/* Glass walls */}
@@ -119,25 +177,7 @@ export function WaterTank({
             depth + wallThickness,
           ]}
         />
-        {shouldUseSimpleMaterial ? (
-          <meshBasicMaterial
-            color="#F6F7FF"
-            transparent
-            opacity={0.2}
-            side={THREE.BackSide}
-          />
-        ) : (
-          <meshPhysicalMaterial
-            color="#F6F7FF"
-            transparent
-            opacity={0.2}
-            transmission={0.95}
-            thickness={wallThickness}
-            roughness={0.05}
-            ior={1.52} // Glass IOR
-            side={THREE.BackSide}
-          />
-        )}
+        {glassMaterial}
       </mesh>
       
       {/* Tank contents */}
