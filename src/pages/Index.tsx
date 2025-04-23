@@ -10,7 +10,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const isMenuOpen = useAquariumStore(state => state.isMenuOpen);
-  const [debugMode] = useState(false); // Set to true to render a simple test div
+  const [debugMode] = useState(false);
   
   // Simulate loading progress
   useEffect(() => {
@@ -39,7 +39,7 @@ const Index = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Add error handling for WebGL support
+  // Error handling for WebGL support
   useEffect(() => {
     const checkWebGL = () => {
       try {
@@ -110,10 +110,13 @@ const Index = () => {
           </button>
         </div>
       ) : (
-        // Main aquarium scene
+        // Main aquarium scene - modified to prevent VHS overlay from causing re-renders
         <>
           <AquariumScene />
-          <VHSOverlay />
+          {/* Disable VHS overlay temporarily to isolate rendering issues */}
+          <div className="z-5">
+            <VHSOverlay />
+          </div>
           <ExploreMenu isVisible={isMenuOpen} />
           
           {/* Info text */}

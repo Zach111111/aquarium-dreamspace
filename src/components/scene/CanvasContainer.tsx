@@ -27,42 +27,27 @@ export function CanvasContainer({ children, onError }: CanvasContainerProps) {
   const handleCanvasError = (event: React.SyntheticEvent) => {
     console.error("Canvas render error:", event);
     setRenderFailed(true);
-    toast({
-      title: "Render Error",
-      description: "There was a problem rendering the 3D scene. Attempting to recover...",
-      variant: "destructive"
-    });
     
     if (onError) onError(event);
   };
 
+  // Simplified rendering options for better compatibility
   return (
     <Canvas 
       className="w-full h-full"
       style={{ background: '#1A1F2C' }}
       gl={{ 
         antialias: true,
-        powerPreference: 'default', // Changed from 'high-performance' to be more compatible
+        powerPreference: 'default',
         alpha: false,
         stencil: false,
-        depth: true,
-        precision: "highp"
+        depth: true
       }}
-      dpr={[0.5, 0.8]} // Reduced DPR for better performance
-      frameloop="always" // Changed from "demand" to ensure continuous rendering
+      dpr={0.5} // Single low value for better compatibility
+      frameloop="always"
       onCreated={({ gl }) => {
         gl.setClearColor(new THREE.Color('#1A1F2C'));
         console.log("Canvas created successfully");
-        
-        // Add context loss handler
-        gl.domElement.addEventListener('webglcontextlost', (e) => {
-          e.preventDefault();
-          console.warn("WebGL context lost");
-        });
-        
-        gl.domElement.addEventListener('webglcontextrestored', () => {
-          console.log("WebGL context restored");
-        });
       }}
       onError={handleCanvasError}
     >
