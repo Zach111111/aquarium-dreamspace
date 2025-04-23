@@ -87,7 +87,9 @@ export function WaterTank({
   const toggleMenu = useAquariumStore(state => state.toggleMenu);
   const waterRef = useRef<THREE.Mesh>(null);
   const glassRef = useRef<THREE.Mesh>(null);
-  const waterShaderRef = useRef<THREE.ShaderMaterial>(null);
+  
+  // Fix: Change the type to any or THREE.ShaderMaterial instead of ShaderMaterial
+  const waterShaderRef = useRef<any>(null);
   
   // Material fallback state
   const [shouldUseSimpleMaterial, setShouldUseSimpleMaterial] = useState(useSimpleMaterial);
@@ -135,7 +137,7 @@ export function WaterTank({
   // Update shader uniforms on each frame
   useFrame(({ clock }) => {
     // Update shader time uniform
-    if (waterShaderRef.current) {
+    if (waterShaderRef.current && waterShaderRef.current.uniforms) {
       waterShaderRef.current.uniforms.time.value = clock.getElapsedTime();
     }
     
