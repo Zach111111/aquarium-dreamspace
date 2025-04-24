@@ -1,7 +1,7 @@
 
 import { useRef, useMemo } from 'react';
 import { Fish } from '../Fish';
-import { Vector3 } from 'three';
+import { Vector3, Group } from 'three';
 import { toast } from "@/components/ui/use-toast";
 
 interface FishSchoolsProps {
@@ -26,7 +26,7 @@ export function FishSchools({ tankSize, crystalPositions, onNewGroupCreated }: F
       };
       
       const schoolFishRefs = Array.from({ length: schoolSize }, () => 
-        useRef<THREE.Group>(null)
+        useRef<Group>(null)
       );
       
       const school = {

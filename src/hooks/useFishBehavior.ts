@@ -1,19 +1,19 @@
 
 import { useRef, useMemo } from 'react';
-import { Vector3, Group } from 'three';
+import * as THREE from 'three';
 import { useMovement } from './fish/useMovement';
 import { useTargeting } from './fish/useTargeting';
 import { useDarting } from './fish/useDarting';
 
 interface FishBehaviorProps {
-  initialPosition: Vector3;
+  initialPosition: THREE.Vector3;
   fishSize: number;
   speed: number;
   personalityFactor: number;
   tankSize: [number, number, number];
   groupIndex: number;
   fishIndex: number;
-  crystalPositions?: Vector3[];
+  crystalPositions?: THREE.Vector3[];
   fishRefs?: React.MutableRefObject<THREE.Group | null>[];
   isFishLeader?: boolean;
   fishRef: React.MutableRefObject<THREE.Group | null>;
@@ -72,7 +72,7 @@ export const useFishBehavior = ({
   
   // Calculate blended target position
   const targetPosition = useMemo(() => {
-    const blendedTarget = new Vector3();
+    const blendedTarget = new THREE.Vector3();
     let totalWeight = 0;
     
     targets.forEach(target => {
@@ -99,4 +99,3 @@ export const useFishBehavior = ({
     targetPosition
   });
 };
-

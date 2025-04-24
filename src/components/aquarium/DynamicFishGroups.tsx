@@ -1,7 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Fish } from '../Fish';
-import { Vector3 } from 'three';
+import { Vector3, Group } from 'three';
 
 interface DynamicFishGroupsProps {
   tankSize: [number, number, number];
@@ -13,7 +13,7 @@ export function DynamicFishGroups({ tankSize, crystalPositions }: DynamicFishGro
 
   const createNewFishGroup = (position: [number, number, number]) => {
     const groupSize = 2 + Math.floor(Math.random() * 2);
-    const groupRefs = Array.from({ length: groupSize }, () => useRef<THREE.Group>(null));
+    const groupRefs = Array.from({ length: groupSize }, () => useRef<Group>(null));
     
     const group = {
       fishes: Array.from({ length: groupSize }, (_, index) => ({
@@ -46,9 +46,9 @@ export function DynamicFishGroups({ tankSize, crystalPositions }: DynamicFishGro
               scale={fish.scale}
               speed={fish.speed}
               tankSize={tankSize}
-              index={(groupIndex + fishSchools.length) * 10 + fishIndex}
+              index={(groupIndex) * 10 + fishIndex}
               groupOffset={fish.offset}
-              groupIndex={groupIndex + fishSchools.length}
+              groupIndex={groupIndex}
               crystalPositions={crystalPositions}
               groupFishRefs={group.refs}
               isGroupLeader={fish.isLeader}

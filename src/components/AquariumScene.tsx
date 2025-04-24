@@ -20,6 +20,16 @@ export function AquariumScene() {
   const tankSize: [number, number, number] = [10, 6, 10];
   const [crystalPositions, setCrystalPositions] = useState<Vector3[]>([]);
   
+  // Reference to the DynamicFishGroups component to call its createNewFishGroup method
+  const [dynamicFishGroupsRef, setDynamicFishGroupsRef] = useState<any>(null);
+  
+  const createNewFishGroup = (position: [number, number, number]) => {
+    // This function will be available through ref to DynamicFishGroups
+    if (dynamicFishGroupsRef && dynamicFishGroupsRef.createNewFishGroup) {
+      dynamicFishGroupsRef.createNewFishGroup(position);
+    }
+  };
+  
   const handleCrystalExplode = (position: [number, number, number]) => {
     incrementScore();
     
@@ -82,6 +92,7 @@ export function AquariumScene() {
               <DynamicFishGroups 
                 tankSize={tankSize}
                 crystalPositions={crystalPositions}
+                ref={setDynamicFishGroupsRef}
               />
               <AquariumEnvironment 
                 tankSize={tankSize}

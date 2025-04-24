@@ -1,4 +1,5 @@
 
+import { useMemo } from 'react';
 import { Plant } from '../Plant';
 import { Crystal } from '../Crystal';
 import { Vector3 } from 'three';

@@ -1,16 +1,17 @@
+
 import { useRef } from 'react';
-import { Vector3, Group } from 'three';
+import * as THREE from 'three';
 
 interface FishTarget {
-  position: Vector3;
+  position: THREE.Vector3;
   weight: number;
   type: 'crystal' | 'group' | 'random';
 }
 
 interface UseTargetingProps {
-  fishPosition: Vector3;
-  crystalPositions: Vector3[];
-  groupFishRefs: React.MutableRefObject<Group | null>[];
+  fishPosition: THREE.Vector3;
+  crystalPositions: THREE.Vector3[];
+  groupFishRefs: React.MutableRefObject<THREE.Group | null>[];
   personalityFactor: number;
   crystalAttraction: number;
   groupCohesion: number;
@@ -37,7 +38,7 @@ export const useTargeting = ({
       
       if (distToCrystal < 1.5) {
         // Orbital movement around crystal
-        const orbitPos = new Vector3().copy(crystalPos);
+        const orbitPos = new THREE.Vector3().copy(crystalPos);
         const angle = Date.now() * 0.001;
         const orbitRadius = 1.0;
         orbitPos.x += Math.sin(angle) * orbitRadius;
@@ -60,7 +61,7 @@ export const useTargeting = ({
   
   // Add group cohesion
   if (groupFishRefs.length > 1) {
-    let groupCenter = new Vector3();
+    let groupCenter = new THREE.Vector3();
     let fishCount = 0;
     
     groupFishRefs.forEach(ref => {

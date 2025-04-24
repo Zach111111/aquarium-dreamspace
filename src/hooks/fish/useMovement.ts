@@ -1,11 +1,11 @@
 
 import { useFrame } from '@react-three/fiber';
-import { Vector3, Group } from 'three';
+import * as THREE from 'three';
 import { calculateBoundedPosition } from '../../utils/geometryUtils';
 import { noise3D } from '../../utils/noise';
 
 interface UseMovementProps {
-  fishRef: React.MutableRefObject<Group | null>;
+  fishRef: React.MutableRefObject<THREE.Group | null>;
   speed: number;
   bounds: {
     minX: number;
@@ -16,8 +16,8 @@ interface UseMovementProps {
     maxZ: number;
   };
   isDarting: boolean;
-  dartDirection: Vector3;
-  targetPosition: Vector3;
+  dartDirection: THREE.Vector3;
+  targetPosition: THREE.Vector3;
 }
 
 export const useMovement = ({
@@ -35,7 +35,7 @@ export const useMovement = ({
     const time = clock.getElapsedTime();
     
     const maxSpeed = isDarting ? speed * 1.5 : speed;
-    const targetVelocity = new Vector3();
+    const targetVelocity = new THREE.Vector3();
     
     if (isDarting) {
       targetVelocity.copy(dartDirection);
@@ -69,4 +69,3 @@ export const useMovement = ({
     }
   });
 };
-

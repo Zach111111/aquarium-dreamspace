@@ -1,10 +1,10 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Vector3 } from 'three';
+import * as THREE from 'three';
 
 interface UseDartingProps {
-  fishPosition: Vector3;
-  crystalPositions: Vector3[];
+  fishPosition: THREE.Vector3;
+  crystalPositions: THREE.Vector3[];
   dartingChance: number;
   dartingForce: number;
   dartingDuration: number;
@@ -18,7 +18,7 @@ export const useDarting = ({
   dartingDuration
 }: UseDartingProps) => {
   const [isDarting, setIsDarting] = useState(false);
-  const dartDirectionRef = useRef(new Vector3());
+  const dartDirectionRef = useRef(new THREE.Vector3());
   
   useEffect(() => {
     if (!isDarting && Math.random() < dartingChance) {
@@ -59,4 +59,3 @@ export const useDarting = ({
     dartDirection: dartDirectionRef.current
   };
 };
-
