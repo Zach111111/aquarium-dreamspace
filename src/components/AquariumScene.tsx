@@ -1,7 +1,6 @@
-
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
@@ -19,37 +18,81 @@ export function AquariumScene() {
   const incrementScore = useAquariumStore(state => state.incrementScore);
   const tankSize: [number, number, number] = [10, 6, 10];
   const [dynamicFishGroups, setDynamicFishGroups] = useState<any[]>([]);
-
-  // Create fish groups (4-5 groups of 2-3 fish each)
-  const fishGroups = useMemo(() => {
-    const groups = [];
-    const numGroups = 4 + Math.floor(Math.random() * 2); // 4-5 groups
+  
+  const [crystalPositions, setCrystalPositions] = useState<THREE.Vector3[]>([]);
+  
+  const fishSchools = useMemo(() => {
+    const schools = [];
+    const numSchools = 3 + Math.floor(Math.random() * 2); // 3-4 schools
     
-    for (let i = 0; i < numGroups; i++) {
-      const groupSize = 2 + Math.floor(Math.random() * 2); // 2-3 fish per group
-      const groupBase = {
+    for (let i = 0; i < numSchools; i++) {
+      const schoolSize = 3 + Math.floor(Math.random() * 3); // 3-5 fish per school
+      const schoolBase = {
         x: (Math.random() - 0.5) * tankSize[0] * 0.7,
         y: (Math.random() - 0.5) * tankSize[1] * 0.7,
         z: (Math.random() - 0.5) * tankSize[2] * 0.7,
-        speed: 0.5 + Math.random() * 1.5
+        speed: 0.5 + Math.random() * 1.5,
+        color: `hsl(${180 + Math.random() * 60}, 70%, ${50 + i * 5}%)`
       };
       
-      const group = Array.from({ length: groupSize }, (_, index) => ({
-        scale: 0.7 + Math.random() * 0.3,
-        speed: groupBase.speed * (0.9 + Math.random() * 0.2),
-        color: `hsl(${180 + Math.random() * 60}, 70%, ${50 + index * 5}%)`,
-        offset: {
-          x: (Math.random() - 0.5) * 0.5,
-          y: (Math.random() - 0.5) * 0.5,
-          z: (Math.random() - 0.5) * 0.5
-        }
-      }));
-      groups.push(group);
+      const schoolFishRefs = Array.from({ length: schoolSize }, () => 
+        useRef<THREE.Group>(null)
+      );
+      
+      const school = {
+        basePosition: schoolBase,
+        fishes: Array.from({ length: schoolSize }, (_, index) => ({
+          ref: schoolFishRefs[index],
+          scale: index === 0 ? 1.0 : 0.7 + Math.random() * 0.3,
+          speed: schoolBase.speed * (index === 0 ? 0.9 : 0.9 + Math.random() * 0.2),
+          color: index === 0 ? 
+            `hsl(${180 + Math.random() * 60}, 80%, 60%)` : 
+            `hsl(${180 + Math.random() * 60}, 70%, ${50 + index * 5}%)`,
+          offset: {
+            x: (Math.random() - 0.5) * 0.8,
+            y: (Math.random() - 0.5) * 0.8,
+            z: (Math.random() - 0.5) * 0.8
+          },
+          isLeader: index === 0,
+          personalityFactor: index === 0 ? 1.5 : 0.8 + Math.random() * 0.4
+        })),
+        refs: schoolFishRefs
+      };
+      
+      schools.push(school);
     }
-    return groups;
-  }, []);
+    
+    const numSolitaryFish = 2 + Math.floor(Math.random() * 3); // 2-4 solitary fish
+    
+    for (let i = 0; i < numSolitaryFish; i++) {
+      const solitaryRef = useRef<THREE.Group>(null);
+      
+      const solitaryFish = {
+        basePosition: {
+          x: (Math.random() - 0.5) * tankSize[0] * 0.7,
+          y: (Math.random() - 0.5) * tankSize[1] * 0.7,
+          z: (Math.random() - 0.5) * tankSize[2] * 0.7,
+          speed: 0.7 + Math.random() * 2.0,
+          color: `hsl(${120 + Math.random() * 60}, 70%, 60%)`
+        },
+        fishes: [{
+          ref: solitaryRef,
+          scale: 0.8 + Math.random() * 0.6,
+          speed: 0.7 + Math.random() * 2.0,
+          color: `hsl(${120 + Math.random() * 60}, 70%, 60%)`,
+          offset: { x: 0, y: 0, z: 0 },
+          isLeader: true,
+          personalityFactor: 2.0 + Math.random()
+        }],
+        refs: [solitaryRef]
+      };
+      
+      schools.push(solitaryFish);
+    }
+    
+    return schools;
+  }, [tankSize]);
 
-  // Generate plant positions
   const plantPositions = useMemo(() => {
     return Array.from({ length: 6 }, () => ([
       (Math.random() - 0.5) * tankSize[0] * 0.7,
@@ -58,18 +101,22 @@ export function AquariumScene() {
     ] as [number, number, number]));
   }, [tankSize]);
 
-  // Generate crystal positions - improved to stay well within boundaries
   const crystalData = useMemo(() => {
-    const safeRadius = 2; // Increased safe distance from tank edges
+    const safeRadius = 2;
     const crystals = [];
+    const positions: THREE.Vector3[] = [];
     
     for (let i = 0; i < 3; i++) {
+      const position = new THREE.Vector3(
+        (Math.random() - 0.5) * (tankSize[0] - safeRadius * 2),
+        -tankSize[1] / 2 * 0.7 + Math.random() * 2,
+        (Math.random() - 0.5) * (tankSize[2] - safeRadius * 2)
+      );
+      
+      positions.push(position);
+      
       crystals.push({
-        position: [
-          (Math.random() - 0.5) * (tankSize[0] - safeRadius * 2),
-          -tankSize[1] / 2 * 0.7 + Math.random() * 2,
-          (Math.random() - 0.5) * (tankSize[2] - safeRadius * 2)
-        ] as [number, number, number],
+        position: position.toArray() as [number, number, number],
         rotation: [
           Math.random() * Math.PI * 0.2,
           Math.random() * Math.PI * 2,
@@ -80,27 +127,32 @@ export function AquariumScene() {
       });
     }
     
+    setCrystalPositions(positions);
+    
     return crystals;
   }, [tankSize]);
 
-  // Create a new fish group at a specific position
   const createNewFishGroup = (position: [number, number, number]) => {
-    const groupSize = 2 + Math.floor(Math.random() * 2); // 2-3 fish
-    const group = Array.from({ length: groupSize }, (_, index) => ({
-      scale: 0.7 + Math.random() * 0.3,
-      speed: 0.7 + Math.random() * 1.5, // Slightly faster than initial fish
-      color: `hsl(${120 + Math.random() * 60}, 70%, ${50 + index * 5}%)`,
-      position: [
-        position[0] + (Math.random() - 0.5) * 1, // Spawn near the crystal
-        position[1] + (Math.random() - 0.5) * 1,
-        position[2] + (Math.random() - 0.5) * 1
-      ],
-      offset: {
-        x: (Math.random() - 0.5) * 0.8,
-        y: (Math.random() - 0.5) * 0.8,
-        z: (Math.random() - 0.5) * 0.8
-      }
-    }));
+    const pos = new THREE.Vector3(...position);
+    const groupSize = 2 + Math.floor(Math.random() * 2);
+    const groupRefs = Array.from({ length: groupSize }, () => useRef<THREE.Group>(null));
+    
+    const group = {
+      fishes: Array.from({ length: groupSize }, (_, index) => ({
+        ref: groupRefs[index],
+        scale: 0.6 + Math.random() * 0.3,
+        speed: 0.7 + Math.random() * 1.5,
+        color: `hsl(${120 + Math.random() * 60}, 70%, ${50 + index * 5}%)`,
+        offset: {
+          x: pos.x + (Math.random() - 0.5) * 1,
+          y: pos.y + (Math.random() - 0.5) * 1,
+          z: pos.z + (Math.random() - 0.5) * 1
+        },
+        isLeader: index === 0,
+        personalityFactor: 1.2 + Math.random() * 0.5
+      })),
+      refs: groupRefs
+    };
     
     setDynamicFishGroups(prevGroups => [...prevGroups, group]);
   };
@@ -108,7 +160,6 @@ export function AquariumScene() {
   const handleCrystalExplode = (position: [number, number, number]) => {
     incrementScore();
     
-    // Create 1-2 new fish groups when a crystal is collected
     const newGroupsCount = 1 + Math.floor(Math.random() * 2);
     for (let i = 0; i < newGroupsCount; i++) {
       createNewFishGroup(position);
@@ -144,7 +195,7 @@ export function AquariumScene() {
               alpha: false,
               stencil: false,
               depth: true,
-              logarithmicDepthBuffer: true, // Added for better depth sorting
+              logarithmicDepthBuffer: true,
             }}
             dpr={[1, 1.5]}
             onError={handleCanvasError}
@@ -166,35 +217,45 @@ export function AquariumScene() {
             <WaterTank size={tankSize} useSimpleMaterial={false}>
               <SandFloor width={tankSize[0]} depth={tankSize[2]} />
               
-              {/* Original fish groups */}
-              {fishGroups.map((group, groupIndex) => (
-                <group key={`group-${groupIndex}`}>
-                  {group.map((fish, fishIndex) => (
+              {fishSchools.map((school, schoolIndex) => (
+                <group key={`school-${schoolIndex}`}>
+                  {school.fishes.map((fish, fishIndex) => (
                     <Fish
-                      key={`fish-${groupIndex}-${fishIndex}`}
+                      key={`fish-${schoolIndex}-${fishIndex}`}
                       color={fish.color}
                       scale={fish.scale}
                       speed={fish.speed}
                       tankSize={tankSize}
-                      index={groupIndex * 3 + fishIndex}
+                      index={schoolIndex * 10 + fishIndex}
                       groupOffset={fish.offset}
+                      groupIndex={schoolIndex}
+                      crystalPositions={crystalPositions}
+                      groupFishRefs={school.refs}
+                      isGroupLeader={fish.isLeader}
+                      personalityFactor={fish.personalityFactor}
+                      ref={fish.ref}
                     />
                   ))}
                 </group>
               ))}
               
-              {/* Dynamically created fish groups from crystal collection */}
               {dynamicFishGroups.map((group, groupIndex) => (
                 <group key={`dynamic-group-${groupIndex}`}>
-                  {group.map((fish, fishIndex) => (
+                  {group.fishes.map((fish, fishIndex) => (
                     <Fish
                       key={`dynamic-fish-${groupIndex}-${fishIndex}`}
                       color={fish.color}
                       scale={fish.scale}
                       speed={fish.speed}
                       tankSize={tankSize}
-                      index={(groupIndex + fishGroups.length) * 3 + fishIndex}
+                      index={(groupIndex + fishSchools.length) * 10 + fishIndex}
                       groupOffset={fish.offset}
+                      groupIndex={groupIndex + fishSchools.length}
+                      crystalPositions={crystalPositions}
+                      groupFishRefs={group.refs}
+                      isGroupLeader={fish.isLeader}
+                      personalityFactor={fish.personalityFactor}
+                      ref={fish.ref}
                     />
                   ))}
                 </group>
@@ -223,7 +284,6 @@ export function AquariumScene() {
           </Canvas>
         </Suspense>
         
-        {/* ScoreDisplay moved outside the Canvas */}
         <ScoreDisplay />
       </div>
     </ErrorBoundary>

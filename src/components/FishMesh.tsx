@@ -10,6 +10,7 @@ interface FishMeshProps {
   onPointerDown: (e: ThreeEvent<PointerEvent>) => void;
   onPointerOver: (e: ThreeEvent<PointerEvent>) => void;
   onPointerOut: (e: ThreeEvent<PointerEvent>) => void;
+  scale?: number[] | number;
 }
 
 export function FishBody({ 
@@ -18,7 +19,8 @@ export function FishBody({
   isClicked,
   onPointerDown,
   onPointerOver,
-  onPointerOut
+  onPointerOut,
+  scale = [1, 0.6, 0.5]
 }: FishMeshProps) {
   const bodyRef = useRef<THREE.Mesh>(null);
 
@@ -32,7 +34,7 @@ export function FishBody({
   return (
     <mesh 
       ref={bodyRef}
-      scale={[1, 0.6, 0.5]}
+      scale={scale}
       onPointerDown={onPointerDown}
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}
@@ -49,7 +51,8 @@ export function FishTail({
   isClicked,
   onPointerDown,
   onPointerOver,
-  onPointerOut
+  onPointerOut,
+  scale = [0.4, 0.3, 0.2]
 }: FishMeshProps) {
   const tailRef = useRef<THREE.Mesh>(null);
 
@@ -64,7 +67,7 @@ export function FishTail({
     <mesh 
       ref={tailRef}
       position={[-0.4, 0, 0]} 
-      scale={[0.4, 0.3, 0.2]}
+      scale={scale}
       onPointerDown={onPointerDown}
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}
