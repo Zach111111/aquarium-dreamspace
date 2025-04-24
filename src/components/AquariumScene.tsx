@@ -1,7 +1,7 @@
 
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
-import { Suspense, useState, useRef } from 'react';
+import { Suspense, useState, useRef, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import { useAquariumStore } from '../store/aquariumStore';
@@ -22,16 +22,45 @@ export function AquariumScene() {
   
   // Use useRef with the correct type for DynamicFishGroups
   const dynamicFishGroupsRef = useRef<DynamicFishGroupsHandle>(null);
+  const pendingFishGroups = useRef<Array<{ position: [number, number, number], delay: number }>>([]);
+  const processingGroups = useRef(false);
   
-  const handleCrystalExplode = (position: [number, number, number]) => {
+  // Process fish group creation in batches to avoid UI freezing
+  const processFishGroups = useCallback(() => {
+    if (processingGroups.current) return;
+    
+    processingGroups.current = true;
+    const nextGroup = pendingFishGroups.current.shift();
+    
+    if (nextGroup && dynamicFishGroupsRef.current) {
+      setTimeout(() => {
+        dynamicFishGroupsRef.current?.createNewFishGroup(nextGroup.position);
+        processingGroups.current = false;
+        
+        if (pendingFishGroups.current.length > 0) {
+          processFishGroups();
+        }
+      }, nextGroup.delay);
+    } else {
+      processingGroups.current = false;
+    }
+  }, []);
+  
+  const handleCrystalExplode = useCallback((position: [number, number, number]) => {
     incrementScore();
     
+    // Schedule creation of fish groups with slight delays for better performance
     const newGroupsCount = 1 + Math.floor(Math.random() * 2);
     for (let i = 0; i < newGroupsCount; i++) {
-      if (dynamicFishGroupsRef.current) {
-        dynamicFishGroupsRef.current.createNewFishGroup(position);
-      }
+      // Add each new fish group to the queue with a staggered delay
+      pendingFishGroups.current.push({
+        position,
+        delay: i * 100 // Stagger creation by 100ms
+      });
     }
+    
+    // Start processing the queue if not already
+    processFishGroups();
     
     toast({
       title: "Crystal collected!",
@@ -39,7 +68,7 @@ export function AquariumScene() {
       variant: "default",
       className: "bg-[#1A1F2C] border-[#7E69AB] text-[#D6BCFA] compact-toast",
     });
-  };
+  }, [incrementScore, processFishGroups]);
 
   const handleCanvasError = (event: React.SyntheticEvent) => {
     console.error("Canvas render error:", event);

@@ -28,6 +28,11 @@ export const useMovement = ({
   dartDirection,
   targetPosition
 }: UseMovementProps) => {
+  // Create reusable vectors to avoid creating new ones every frame
+  const targetVelocity = new THREE.Vector3();
+  const direction = new THREE.Vector3();
+  const lookAtPosition = new THREE.Vector3();
+
   useFrame(({ clock }) => {
     if (!fishRef.current) return;
     
@@ -35,17 +40,23 @@ export const useMovement = ({
     const time = clock.getElapsedTime();
     
     const maxSpeed = isDarting ? speed * 1.5 : speed;
-    const targetVelocity = new THREE.Vector3();
+    
+    // Reset target velocity
+    targetVelocity.set(0, 0, 0);
     
     if (isDarting) {
+      // Simply copy the dart direction during darting
       targetVelocity.copy(dartDirection);
     } else {
-      targetVelocity.subVectors(targetPosition, fishRef.current.position)
+      // Calculate direction to target
+      direction.subVectors(targetPosition, fishRef.current.position)
         .normalize()
         .multiplyScalar(maxSpeed);
+      
+      targetVelocity.copy(direction);
     }
     
-    // Add noise for natural movement
+    // Add noise for natural movement - use existing vector
     targetVelocity.x += noise3D(time * 0.5, 0, 0) * 0.1;
     targetVelocity.y += noise3D(time * 0.5, 100, 0) * 0.1;
     targetVelocity.z += noise3D(time * 0.5, 200, 0) * 0.1;
@@ -53,17 +64,20 @@ export const useMovement = ({
     // Apply movement
     const frameSpeed = targetVelocity.length() * deltaTime;
     if (frameSpeed > 0.001) {
+      // Apply the velocity
       fishRef.current.position.addScaledVector(targetVelocity, deltaTime);
+      
+      // Check bounds and adjust position if needed
       fishRef.current.position.copy(
         calculateBoundedPosition(fishRef.current.position, bounds)
       );
       
-      // Update fish orientation
+      // Update fish orientation - use existing lookAt vector
       if (targetVelocity.length() > 0.1) {
-        const direction = targetVelocity.clone().normalize();
-        fishRef.current.lookAt(
-          fishRef.current.position.clone().add(direction)
-        );
+        lookAtPosition.copy(fishRef.current.position).add(targetVelocity.normalize());
+        fishRef.current.lookAt(lookAtPosition);
+        
+        // Add roll based on vertical velocity for more natural fish movement
         fishRef.current.rotation.z = targetVelocity.y * 0.7;
       }
     }

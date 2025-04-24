@@ -1,5 +1,5 @@
 
-import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useState, useRef, useImperativeHandle, forwardRef, useMemo } from 'react';
 import { Fish } from '../Fish';
 import { Vector3, Group } from 'three';
 
@@ -16,9 +16,27 @@ export const DynamicFishGroups = forwardRef<DynamicFishGroupsHandle, DynamicFish
   ({ tankSize, crystalPositions }, ref) => {
     const [dynamicFishGroups, setDynamicFishGroups] = useState<any[]>([]);
     
+    // Create a pool of refs that we can use for fish groups
+    // This ensures refs are created at component level and not inside handlers
+    const fishRefsPool = useMemo(() => {
+      const pool = [];
+      // Pre-allocate a pool of refs for potential fish groups
+      const poolSize = 20;
+      
+      for (let i = 0; i < poolSize; i++) {
+        // Each group can have up to 4 fish
+        const groupRefs = Array.from({ length: 4 }, () => useRef<Group>(null));
+        pool.push(groupRefs);
+      }
+      
+      return pool;
+    }, []);
+    
     const createNewFishGroup = (position: [number, number, number]) => {
       const groupSize = 2 + Math.floor(Math.random() * 2);
-      const groupRefs = Array.from({ length: groupSize }, () => useRef<Group>(null));
+      // Use the next available refs from our pool
+      const poolIndex = dynamicFishGroups.length % fishRefsPool.length;
+      const groupRefs = fishRefsPool[poolIndex];
       
       const group = {
         fishes: Array.from({ length: groupSize }, (_, index) => ({
@@ -34,7 +52,8 @@ export const DynamicFishGroups = forwardRef<DynamicFishGroupsHandle, DynamicFish
           isLeader: index === 0,
           personalityFactor: 1.2 + Math.random() * 0.5
         })),
-        refs: groupRefs
+        refs: groupRefs.slice(0, groupSize),
+        createdAt: Date.now() // Timestamp to help with animations
       };
       
       setDynamicFishGroups(prevGroups => [...prevGroups, group]);

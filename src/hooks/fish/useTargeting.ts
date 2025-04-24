@@ -1,5 +1,5 @@
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import * as THREE from 'three';
 
 interface FishTarget {
@@ -25,9 +25,17 @@ export const useTargeting = ({
   crystalAttraction,
   groupCohesion
 }: UseTargetingProps) => {
-  const targets: FishTarget[] = [];
+  // Store the targets in a ref to avoid recreating the array every frame
+  const targetsRef = useRef<FishTarget[]>([]);
+  // Create a reusable vector for calculations
+  const tempVector = useMemo(() => new THREE.Vector3(), []);
+  // Create a reusable group center vector
+  const groupCenter = useMemo(() => new THREE.Vector3(), []);
   
-  // Add crystal targets
+  // Clear previous targets and calculate new ones
+  targetsRef.current = [];
+  
+  // Add crystal targets - only process crystals within attraction range
   crystalPositions.forEach(crystalPos => {
     const distToCrystal = fishPosition.distanceTo(crystalPos);
     const attractionZone = 4.0;
@@ -37,20 +45,20 @@ export const useTargeting = ({
         Math.max(0.1, Math.min(1.0, (attractionZone - distToCrystal) / attractionZone));
       
       if (distToCrystal < 1.5) {
-        // Orbital movement around crystal
+        // Orbital movement around crystal using existing orbit vector
         const orbitPos = new THREE.Vector3().copy(crystalPos);
         const angle = Date.now() * 0.001;
         const orbitRadius = 1.0;
         orbitPos.x += Math.sin(angle) * orbitRadius;
         orbitPos.z += Math.cos(angle) * orbitRadius;
         
-        targets.push({
+        targetsRef.current.push({
           position: orbitPos,
           weight: weight * 1.5,
           type: 'crystal'
         });
       } else {
-        targets.push({
+        targetsRef.current.push({
           position: crystalPos,
           weight,
           type: 'crystal'
@@ -61,19 +69,21 @@ export const useTargeting = ({
   
   // Add group cohesion
   if (groupFishRefs.length > 1) {
-    let groupCenter = new THREE.Vector3();
+    // Reset the group center vector
+    groupCenter.set(0, 0, 0);
     let fishCount = 0;
     
     groupFishRefs.forEach(ref => {
       if (ref.current && fishPosition.distanceTo(ref.current.position) < 4) {
-        groupCenter.add(ref.current.position);
+        tempVector.copy(ref.current.position);
+        groupCenter.add(tempVector);
         fishCount++;
       }
     });
     
     if (fishCount > 0) {
       groupCenter.divideScalar(fishCount);
-      targets.push({
+      targetsRef.current.push({
         position: groupCenter,
         weight: groupCohesion,
         type: 'group'
@@ -81,5 +91,5 @@ export const useTargeting = ({
     }
   }
   
-  return targets;
+  return targetsRef.current;
 };
