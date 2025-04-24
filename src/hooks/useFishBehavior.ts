@@ -1,6 +1,6 @@
 
 import { useRef, useMemo } from 'react';
-import { Vector3 } from 'three';
+import { Vector3, Group } from 'three';
 import { useMovement } from './fish/useMovement';
 import { useTargeting } from './fish/useTargeting';
 import { useDarting } from './fish/useDarting';

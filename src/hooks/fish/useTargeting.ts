@@ -1,6 +1,5 @@
-
 import { useRef } from 'react';
-import { Vector3 } from 'three';
+import { Vector3, Group } from 'three';
 
 interface FishTarget {
   position: Vector3;
@@ -11,7 +10,7 @@ interface FishTarget {
 interface UseTargetingProps {
   fishPosition: Vector3;
   crystalPositions: Vector3[];
-  groupFishRefs: React.MutableRefObject<THREE.Group | null>[];
+  groupFishRefs: React.MutableRefObject<Group | null>[];
   personalityFactor: number;
   crystalAttraction: number;
   groupCohesion: number;
@@ -83,4 +82,3 @@ export const useTargeting = ({
   
   return targets;
 };
-
