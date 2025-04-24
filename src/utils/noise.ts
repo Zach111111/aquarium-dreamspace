@@ -57,3 +57,34 @@ export function calculateDirection(
   
   return [dx / length, dy / length, dz / length];
 }
+
+// Generate Gerstner wave point for water surface
+export function gerstnerWave(
+  x: number,
+  z: number,
+  time: number,
+  amplitude: number,
+  wavelength: number,
+  direction: [number, number]
+): [number, number, number] {
+  const k = 2 * Math.PI / wavelength;
+  const [dx, dz] = direction;
+  const f = k * (dx * x + dz * z) + time;
+  
+  // Calculate displacement
+  const px = amplitude * dx * Math.cos(f);
+  const py = amplitude * Math.sin(f);
+  const pz = amplitude * dz * Math.cos(f);
+  
+  return [px, py, pz];
+}
+
+// Add damp oscillation for seaweed segments
+export function dampOscillation(
+  time: number, 
+  frequency: number, 
+  amplitude: number, 
+  dampFactor: number
+): number {
+  return amplitude * Math.exp(-time * dampFactor) * Math.sin(time * frequency);
+}
