@@ -103,9 +103,18 @@ export const Fish = forwardRef<Group, FishProps>(({
     setIsHovered(false);
   };
 
-  // Scale fish based on size variation
-  const bodyScale = [adjustedScale, adjustedScale * 0.6, adjustedScale * 0.5];
-  const tailScale = [adjustedScale * 0.4, adjustedScale * 0.3, adjustedScale * 0.2];
+  // Scale fish based on size variation - ensure these are tuples with exactly 3 elements
+  const bodyScale: [number, number, number] = [
+    adjustedScale, 
+    adjustedScale * 0.6, 
+    adjustedScale * 0.5
+  ];
+  
+  const tailScale: [number, number, number] = [
+    adjustedScale * 0.4, 
+    adjustedScale * 0.3, 
+    adjustedScale * 0.2
+  ];
 
   // Use different colors for leader fish
   const fishColor = isGroupLeader ? 
@@ -138,4 +147,3 @@ export const Fish = forwardRef<Group, FishProps>(({
 
 // Add display name for better debugging
 Fish.displayName = 'Fish';
-
