@@ -1,8 +1,10 @@
 
-import { useRef, useMemo, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useRef } from 'react';
 import * as THREE from 'three';
-import { noise2D, gerstnerWave } from '../utils/noise';
+import { useWaterAnimation } from '../hooks/useWaterAnimation';
+import { WaterMaterial } from './tank/WaterMaterial';
+import { GlassMaterial } from './tank/GlassMaterial';
+import { Bubbles } from './tank/Bubbles';
 
 interface WaterTankProps {
   size: [number, number, number];
@@ -13,220 +15,12 @@ interface WaterTankProps {
 
 export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = false }: WaterTankProps) {
   const [width, height, depth] = size;
-  
-  // Create refs
   const waterRef = useRef<THREE.Mesh>(null);
   const waterSurfaceRef = useRef<THREE.Mesh>(null);
   const glassRef = useRef<THREE.Mesh>(null);
   const edgesRef = useRef<THREE.LineSegments>(null);
-  const bubblesRef = useRef<THREE.Points>(null);
-  const bubbleVelocitiesRef = useRef<THREE.Vector3[]>([]);
-  
-  // Define constants
-  const bubbleCount = 30;
-  
-  // Initialize bubble positions and velocities
-  const bubbleData = useMemo(() => {
-    const count = bubbleCount;
-    const positions = new Float32Array(count * 3);
-    const velocities = new Float32Array(count * 3);
-    
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * width * 0.8;
-      positions[i * 3 + 1] = -height * 0.45 + Math.random() * height * 0.1; // Start near bottom
-      positions[i * 3 + 2] = (Math.random() - 0.5) * depth * 0.8;
-      
-      velocities[i * 3] = (Math.random() - 0.5) * 0.002;
-      velocities[i * 3 + 1] = 0.005 + Math.random() * 0.01;
-      velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.002;
-    }
-    
-    return { positions, velocities };
-  }, [width, height, depth, bubbleCount]);
 
-  // Create geometries
-  const bubbleGeometry = useMemo(() => {
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(bubbleData.positions, 3));
-    return geometry;
-  }, [bubbleData.positions]);
-
-  // Create materials
-  const waterMaterial = useMemo(() => {
-    return useSimpleMaterial ? 
-      new THREE.MeshBasicMaterial({
-        color: "#66ccff",
-        transparent: true,
-        opacity: 0.4,
-        side: THREE.DoubleSide
-      }) :
-      new THREE.MeshPhysicalMaterial({
-        color: "#66ccff",
-        transparent: true,
-        opacity: 0.6, 
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        roughness: 0.1,
-        metalness: 0.2,
-        clearcoat: 0.8,
-        clearcoatRoughness: 0.2,
-        envMapIntensity: 1.5,
-        transmission: 0.95,
-        ior: 1.33
-      });
-  }, [useSimpleMaterial]);
-
-  // Water surface geometry
-  const waterSurfaceGeometry = useMemo(() => {
-    const geometry = new THREE.PlaneGeometry(
-      width * 0.98, 
-      depth * 0.98, 
-      16, // More segments for smoother waves
-      16
-    );
-    geometry.rotateX(-Math.PI / 2); // Rotate to horizontal
-    geometry.translate(0, height * 0.95 / 2, 0); // Position at tank top
-    return geometry;
-  }, [width, depth, height]);
-  
-  // Water surface material
-  const waterSurfaceMaterial = useMemo(() => {
-    return new THREE.MeshPhysicalMaterial({
-      color: "#77ddff",
-      transparent: true,
-      opacity: 0.7,
-      side: THREE.DoubleSide,
-      roughness: 0.1,
-      metalness: 0.5,
-      envMapIntensity: 2.0,
-      reflectivity: 1.0,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.1,
-      wireframe: false,
-    });
-  }, []);
-
-  // Glass material
-  const glassMaterial = useMemo(() => {
-    return new THREE.MeshPhysicalMaterial({
-      color: "#F6F7FF",
-      transparent: true,
-      opacity: 0.2,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-      depthTest: true,
-      roughness: 0.05,
-      metalness: 0.9,
-      envMapIntensity: 1.5,
-      transmission: 0.98,
-      reflectivity: 0.9,
-      clearcoat: 1.0
-    });
-  }, []);
-
-  // Simple material for low-performance mode
-  const simpleMaterial = useMemo(() => {
-    return new THREE.MeshBasicMaterial({
-      color: "#66ccff",
-      transparent: true,
-      opacity: 0.4,
-      side: THREE.DoubleSide
-    });
-  }, []);
-
-  // Bubble material
-  const bubbleMaterial = useMemo(() => {
-    return new THREE.PointsMaterial({
-      color: '#ffffff',
-      size: 0.05,
-      transparent: true,
-      opacity: 0.7,
-      blending: THREE.AdditiveBlending,
-    });
-  }, []);
-
-  // Initialize bubble physics
-  useEffect(() => {
-    bubbleVelocitiesRef.current = Array(bubbleCount).fill(0).map(() => 
-      new THREE.Vector3(
-        (Math.random() - 0.5) * 0.003, 
-        0.005 + Math.random() * 0.01, 
-        (Math.random() - 0.5) * 0.003
-      )
-    );
-  }, [bubbleCount]);
-
-  useFrame(({ clock }) => {
-    const time = clock.getElapsedTime();
-    
-    // Animate water volume with subtle rotation
-    if (waterRef.current) {
-      waterRef.current.rotation.y = Math.sin(time * 0.1) * 0.02;
-    }
-    
-    // Dynamic water surface animation
-    if (waterSurfaceRef.current && waterSurfaceRef.current.geometry) {
-      const geometry = waterSurfaceRef.current.geometry;
-      const position = geometry.attributes.position;
-      
-      for (let i = 0; i < position.count; i++) {
-        const x = position.getX(i);
-        const z = position.getZ(i);
-        
-        // Calculate wave height based on noise and time
-        const noiseScale = 0.3;
-        const waveSpeed = 0.4;
-        const nx = noise2D(x * noiseScale + time * waveSpeed, z * noiseScale + time * waveSpeed * 0.8);
-        const waveHeight = 0.05 * nx;
-        
-        // Add audio reactivity
-        const audioFactor = audioLevel * 0.15;
-        const audioWave = audioFactor * Math.sin(time * 5 + x * 2 + z * 2);
-        
-        // Apply combined height
-        const y = waveHeight + audioWave;
-        position.setY(i, y + height * 0.95 / 2); // Adjust for base position
-      }
-      
-      position.needsUpdate = true;
-    }
-    
-    // Animate bubbles
-    if (bubblesRef.current && bubblesRef.current.geometry) {
-      const positions = bubblesRef.current.geometry.attributes.position;
-      
-      if (positions && bubbleVelocitiesRef.current.length > 0) {
-        for (let i = 0; i < bubbleCount && i < positions.count; i++) {
-          // Update bubble position
-          positions.setX(i, positions.getX(i) + bubbleVelocitiesRef.current[i].x);
-          positions.setY(i, positions.getY(i) + bubbleVelocitiesRef.current[i].y);
-          positions.setZ(i, positions.getZ(i) + bubbleVelocitiesRef.current[i].z);
-          
-          // Apply subtle random movement
-          bubbleVelocitiesRef.current[i].x += (Math.random() - 0.5) * 0.001;
-          bubbleVelocitiesRef.current[i].z += (Math.random() - 0.5) * 0.001;
-          
-          // Constrain within tank boundaries
-          if (Math.abs(positions.getX(i)) > width * 0.45) {
-            bubbleVelocitiesRef.current[i].x *= -0.8;
-          }
-          
-          if (Math.abs(positions.getZ(i)) > depth * 0.45) {
-            bubbleVelocitiesRef.current[i].z *= -0.8;
-          }
-          
-          // Reset bubbles that reach the top
-          if (positions.getY(i) > height * 0.45) {
-            positions.setY(i, -height * 0.45 + Math.random() * 0.1);
-            positions.setX(i, (Math.random() - 0.5) * width * 0.8);
-            positions.setZ(i, (Math.random() - 0.5) * depth * 0.8);
-          }
-        }
-        
-        positions.needsUpdate = true;
-      }
-    }
-  });
+  useWaterAnimation({ waterRef, waterSurfaceRef, width, height, depth, audioLevel });
 
   return (
     <group>
@@ -236,19 +30,26 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
       {/* Water volume */}
       <mesh ref={waterRef} position={[0, 0, 0]} renderOrder={1}>
         <boxGeometry args={[width * 0.98, height * 0.98, depth * 0.98]} />
-        <primitive object={useSimpleMaterial ? simpleMaterial : waterMaterial} />
+        <WaterMaterial useSimpleMaterial={useSimpleMaterial} />
       </mesh>
       
       {/* Dynamic water surface */}
       <mesh ref={waterSurfaceRef} renderOrder={3}>
-        <primitive object={waterSurfaceGeometry} />
-        <primitive object={waterSurfaceMaterial} />
+        <planeGeometry args={[width * 0.98, depth * 0.98, 16, 16]} />
+        <meshPhysicalMaterial 
+          color="#77ddff"
+          transparent
+          opacity={0.7}
+          metalness={0.5}
+          roughness={0.1}
+          clearcoat={1.0}
+        />
       </mesh>
       
       {/* Glass walls */}
       <mesh ref={glassRef} position={[0, 0, 0]} renderOrder={2}>
         <boxGeometry args={[width + 0.25, height + 0.25, depth + 0.25]} />
-        <primitive object={glassMaterial} />
+        <GlassMaterial />
       </mesh>
 
       {/* Tank edges */}
@@ -257,13 +58,8 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
         <lineBasicMaterial color="#ffffff" opacity={0.8} transparent />
       </lineSegments>
       
-      {/* Bubbles */}
-      <points ref={bubblesRef} renderOrder={5}>
-        <primitive object={bubbleGeometry} />
-        <primitive object={bubbleMaterial} />
-      </points>
+      <Bubbles width={width} height={height} depth={depth} />
       
-      {/* Tank contents */}
       {children}
     </group>
   );
