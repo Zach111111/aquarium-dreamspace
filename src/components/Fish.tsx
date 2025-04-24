@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, forwardRef } from 'react';
 import { ThreeEvent } from '@react-three/fiber';
 import { Group, Vector3, MathUtils } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
@@ -22,7 +22,7 @@ interface FishProps {
   personalityFactor?: number;
 }
 
-export function Fish({ 
+export const Fish = forwardRef<Group, FishProps>(({ 
   color = '#A5F3FF',
   scale = 1, 
   speed = 1,
@@ -34,7 +34,7 @@ export function Fish({
   groupFishRefs = [],
   isGroupLeader = false,
   personalityFactor = 1.0
-}: FishProps) {
+}: FishProps, ref) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
   const decrementScore = useAquariumStore(state => state.decrementScore);
@@ -60,8 +60,11 @@ export function Fish({
     return speed * sizeSpeedFactor;
   }, [speed, adjustedScale]);
   
-  // Use the new fish behavior hook
-  const { fishRef } = useFishBehavior({
+  // Use the fish behavior hook
+  const internalFishRef = useRef<Group>(null);
+  const fishRef = ref || internalFishRef;
+  
+  useFishBehavior({
     initialPosition,
     fishSize: adjustedScale,
     speed: adjustedSpeed,
@@ -71,7 +74,8 @@ export function Fish({
     fishIndex: index,
     crystalPositions,
     fishRefs: groupFishRefs,
-    isFishLeader: isGroupLeader
+    isFishLeader: isGroupLeader,
+    fishRef: fishRef as React.MutableRefObject<Group | null>
   });
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -130,4 +134,8 @@ export function Fish({
       />
     </group>
   );
-}
+});
+
+// Add display name for better debugging
+Fish.displayName = 'Fish';
+

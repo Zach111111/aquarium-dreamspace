@@ -23,6 +23,7 @@ interface FishBehaviorProps {
   crystalPositions?: Vector3[];
   fishRefs?: React.MutableRefObject<Group | null>[];
   isFishLeader?: boolean;
+  fishRef: React.MutableRefObject<Group | null>; 
 }
 
 export const useFishBehavior = ({
@@ -35,9 +36,9 @@ export const useFishBehavior = ({
   fishIndex,
   crystalPositions = [],
   fishRefs = [],
-  isFishLeader = false
+  isFishLeader = false,
+  fishRef
 }: FishBehaviorProps) => {
-  const fishRef = useRef<Group>(null);
   const targetRef = useRef<Vector3>(new Vector3().copy(initialPosition));
   const velocityRef = useRef<Vector3>(new Vector3(0, 0, 0));
   const personalityRef = useRef({
@@ -236,8 +237,6 @@ export const useFishBehavior = ({
       }
     }
   });
-  
-  return { fishRef };
 };
 
 // Helper function to find the closest target from a list
