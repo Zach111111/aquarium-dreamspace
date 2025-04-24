@@ -3,7 +3,7 @@ import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
-import { noise3D } from '../utils/noise';
+import { noise3D, calculateSeaweedMovement } from '../utils/noise';
 
 interface PlantProps {
   position: [number, number, number];
@@ -19,125 +19,112 @@ export function Plant({
   color = '#B9FFCE', 
   height = 2, 
   width = 0.5,
-  segments = 4,
+  segments = 8,
   audioLevel = 0
 }: PlantProps) {
-  const segmentsCount = 7; // Number of segments in the plant
   const mainStemRef = useRef<THREE.Group>(null);
   const stemSegmentRefs = useRef<THREE.Mesh[]>([]);
   const speedFactor = useAquariumStore(state => state.speedFactor);
+  
   const baseColor = useMemo(() => new THREE.Color(color), [color]);
   const leafCount = useMemo(() => Math.floor(Math.random() * 3) + 2, []);
+  
+  // Generate leaf positions
   const leafPositions = useMemo(() => 
     Array.from({ length: leafCount }).map(() => ({
-      segment: Math.floor(Math.random() * (segmentsCount - 1)) + 1,
+      segment: Math.floor(Math.random() * (segments - 1)) + 1,
       angle: Math.random() * Math.PI * 2,
       length: 0.3 + Math.random() * 0.4,
       width: 0.1 + Math.random() * 0.15
     })), 
-    [leafCount]
+    [leafCount, segments]
   );
   
   // Initialize segment positions
   const initialSegmentPositions = useMemo(() => {
     const positions = [];
-    const segmentHeight = height / segmentsCount;
-    for (let i = 0; i < segmentsCount; i++) {
+    const segmentHeight = height / segments;
+    for (let i = 0; i < segments; i++) {
       positions.push([0, i * segmentHeight, 0]);
     }
     return positions;
-  }, [height, segmentsCount]);
+  }, [height, segments]);
   
-  // Create materials with different shades of the base color
+  // Create materials with different shades
   const materials = useMemo(() => {
-    return Array.from({ length: segmentsCount }).map((_, i) => {
+    return Array.from({ length: segments }).map((_, i) => {
       const segmentColor = baseColor.clone().lerp(
         new THREE.Color('#ffffff'), 
-        0.1 * (i / segmentsCount)
+        0.1 * (i / segments)
       );
       
       return new THREE.MeshStandardMaterial({
         color: segmentColor,
-        emissive: segmentColor.clone().multiplyScalar(0.2),
-        roughness: 0.6,
-        metalness: 0.1,
         transparent: true,
         opacity: 0.9,
+        metalness: 0.1,
+        roughness: 0.7,
       });
     });
-  }, [baseColor, segmentsCount]);
+  }, [baseColor, segments]);
 
-  // Create leaf material
+  // Leaf material
   const leafMaterial = useMemo(() => {
-    const leafColor = baseColor.clone().lerp(new THREE.Color('#ffffff'), 0.2);
     return new THREE.MeshStandardMaterial({
-      color: leafColor,
+      color: baseColor.clone().lerp(new THREE.Color('#ffffff'), 0.2),
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.8,
     });
   }, [baseColor]);
 
-  useEffect(() => {
-    // Initialize references array
-    stemSegmentRefs.current = [];
-  }, []);
-  
   useFrame(({ clock }) => {
     if (!mainStemRef.current) return;
     
     const time = clock.getElapsedTime();
-    const segmentSpacing = height / segmentsCount;
     
-    // Add dynamic motion to each segment with increasing influence
+    // Animate each segment
     stemSegmentRefs.current.forEach((segment, i) => {
       if (!segment) return;
       
-      // Base animation - swaying motion
-      const swayFactor = 0.05 * (i + 1) * (i / segmentsCount); // More sway at the top
-      const swayX = Math.sin(time * speedFactor * 0.8 + i * 0.2) * swayFactor;
-      const swayZ = Math.cos(time * speedFactor * 0.7 + i * 0.3) * swayFactor;
+      const [xOffset, zOffset] = calculateSeaweedMovement(
+        i,
+        segments,
+        time * speedFactor,
+        0.15,
+        audioLevel
+      );
       
-      // Noise-based organic motion
-      const noiseScale = 0.2;
-      const noiseTime = time * 0.3;
-      const noiseX = noise3D(i * noiseScale, 0, noiseTime) * 0.04 * (i + 1);
-      const noiseZ = noise3D(i * noiseScale, 1, noiseTime) * 0.04 * (i + 1);
+      // Apply movement
+      segment.position.x = xOffset;
+      segment.position.z = zOffset;
       
-      // Audio reactivity
-      const audioFactor = audioLevel * 0.3 * (i / segmentsCount);
-      
-      // Apply combined movement
-      segment.position.x = swayX + noiseX + (audioFactor * Math.sin(time * 5));
-      segment.position.z = swayZ + noiseZ + (audioFactor * Math.cos(time * 5));
-      
+      // Orient segments
       if (i > 0) {
-        // Orient each segment to point at the next one (except the last segment)
-        const parentPos = stemSegmentRefs.current[i-1].position;
-        const currentPos = segment.position;
-        
-        // Calculate direction from parent to this segment
-        const direction = new THREE.Vector3()
-          .subVectors(currentPos, parentPos)
-          .normalize();
+        const prevSegment = stemSegmentRefs.current[i - 1];
+        if (prevSegment) {
+          const direction = new THREE.Vector3()
+            .subVectors(segment.position, prevSegment.position)
+            .normalize();
           
-        // Create rotation to align with this direction
-        const axis = new THREE.Vector3(0, 1, 0);
-        const angle = Math.atan2(direction.x, direction.z);
-        segment.rotation.y = angle;
-        
-        // Tilt the segment based on how far it's moved from center
-        const displacement = Math.sqrt(currentPos.x * currentPos.x + currentPos.z * currentPos.z);
-        segment.rotation.x = displacement * 0.5;
+          // Calculate rotation to point at next segment
+          const quaternion = new THREE.Quaternion();
+          const up = new THREE.Vector3(0, 1, 0);
+          const axis = new THREE.Vector3().crossVectors(up, direction).normalize();
+          const angle = Math.acos(up.dot(direction));
+          quaternion.setFromAxisAngle(axis, angle);
+          
+          segment.quaternion.slerp(quaternion, 0.1);
+        }
       }
     });
   });
 
   return (
-    <group position={[position[0], position[1], position[2]]}>
+    <group position={position}>
       <group ref={mainStemRef}>
-        {/* Main stem segments */}
-        {Array.from({ length: segmentsCount }).map((_, i) => (
+        {/* Stem segments */}
+        {Array.from({ length: segments }).map((_, i) => (
           <mesh 
             key={`segment-${i}`}
             position={[
@@ -151,11 +138,11 @@ export function Plant({
           >
             <cylinderGeometry 
               args={[
-                width * 0.1 * (segmentsCount - i) / segmentsCount, // Top radius decreases with height
-                width * 0.15 * (segmentsCount - i + 1) / segmentsCount, // Bottom radius
-                height / segmentsCount, // Height of segment
-                segments, // Radial segments
-                1 // Height segments
+                width * 0.1 * (segments - i) / segments,
+                width * 0.15 * (segments - i + 1) / segments,
+                height / segments,
+                6,
+                1
               ]} 
             />
             <primitive object={materials[i]} />
@@ -163,24 +150,20 @@ export function Plant({
         ))}
         
         {/* Leaves */}
-        {leafPositions.map((leaf, i) => {
-          const segmentIndex = leaf.segment;
-          const segmentHeight = height / segmentsCount;
-          return (
-            <mesh 
-              key={`leaf-${i}`}
-              position={[
-                initialSegmentPositions[segmentIndex][0], 
-                initialSegmentPositions[segmentIndex][1], 
-                initialSegmentPositions[segmentIndex][2]
-              ]}
-              rotation={[0, leaf.angle, Math.PI / 4]}
-            >
-              <planeGeometry args={[leaf.width, leaf.length]} />
-              <primitive object={leafMaterial} />
-            </mesh>
-          );
-        })}
+        {leafPositions.map((leaf, i) => (
+          <mesh 
+            key={`leaf-${i}`}
+            position={[
+              initialSegmentPositions[leaf.segment][0], 
+              initialSegmentPositions[leaf.segment][1], 
+              initialSegmentPositions[leaf.segment][2]
+            ]}
+            rotation={[0, leaf.angle, Math.PI / 4]}
+          >
+            <planeGeometry args={[leaf.width, leaf.length]} />
+            <primitive object={leafMaterial} />
+          </mesh>
+        ))}
       </group>
     </group>
   );

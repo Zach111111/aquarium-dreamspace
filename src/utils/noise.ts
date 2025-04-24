@@ -1,4 +1,3 @@
-
 import { createNoise2D, createNoise3D } from 'simplex-noise';
 
 // Create 2D and 3D noise generators
@@ -58,23 +57,25 @@ export function calculateDirection(
   return [dx / length, dy / length, dz / length];
 }
 
-// Generate Gerstner wave point for water surface
+// Enhanced Gerstner wave function for more dynamic water surface
 export function gerstnerWave(
   x: number,
   z: number,
   time: number,
   amplitude: number,
   wavelength: number,
-  direction: [number, number]
+  direction: [number, number],
+  steepness: number = 1.0
 ): [number, number, number] {
   const k = 2 * Math.PI / wavelength;
   const [dx, dz] = direction;
-  const f = k * (dx * x + dz * z) + time;
+  const f = k * (dx * x + dz * z) - time;
+  const a = steepness / k;
   
   // Calculate displacement
-  const px = amplitude * dx * Math.cos(f);
+  const px = dx * a * Math.cos(f);
   const py = amplitude * Math.sin(f);
-  const pz = amplitude * dz * Math.cos(f);
+  const pz = dz * a * Math.cos(f);
   
   return [px, py, pz];
 }
@@ -82,9 +83,26 @@ export function gerstnerWave(
 // Add damp oscillation for seaweed segments
 export function dampOscillation(
   time: number, 
-  frequency: number, 
-  amplitude: number, 
-  dampFactor: number
+  frequency: number = 1.0,
+  amplitude: number = 1.0, 
+  dampFactor: number = 0.5
 ): number {
   return amplitude * Math.exp(-time * dampFactor) * Math.sin(time * frequency);
+}
+
+// Seaweed movement calculation
+export function calculateSeaweedMovement(
+  segmentIndex: number,
+  totalSegments: number,
+  time: number,
+  baseAmplitude: number = 0.1,
+  audioLevel: number = 0
+): [number, number] {
+  const normalizedIndex = segmentIndex / totalSegments;
+  const swayAmplitude = baseAmplitude * (1 + normalizedIndex) * (1 + audioLevel);
+  
+  const xOffset = Math.sin(time * 2 + segmentIndex) * swayAmplitude;
+  const zOffset = Math.cos(time * 1.5 + segmentIndex) * swayAmplitude;
+  
+  return [xOffset, zOffset];
 }
