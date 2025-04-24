@@ -2,7 +2,7 @@
 import { useFrame } from '@react-three/fiber';
 import { RefObject } from 'react';
 import * as THREE from 'three';
-import { createWaterWave, createAudioWave } from '../utils/geometryUtils';
+import { noise2D, gerstnerWave } from '../utils/noise';
 
 interface UseWaterAnimationProps {
   waterRef: RefObject<THREE.Mesh>;
@@ -38,9 +38,13 @@ export const useWaterAnimation = ({
         const x = position.getX(i);
         const z = position.getZ(i);
         
-        // Use the new utility functions
-        const waveHeight = createWaterWave(x, z, time);
-        const audioWave = createAudioWave(x, z, time, audioLevel);
+        const noiseScale = 0.3;
+        const waveSpeed = 0.4;
+        const nx = noise2D(x * noiseScale + time * waveSpeed, z * noiseScale + time * waveSpeed * 0.8);
+        const waveHeight = 0.05 * nx;
+        
+        const audioFactor = audioLevel * 0.15;
+        const audioWave = audioFactor * Math.sin(time * 5 + x * 2 + z * 2);
         
         const y = waveHeight + audioWave;
         position.setY(i, y + height * 0.95 / 2);

@@ -28,8 +28,6 @@ export function Crystal({
   const colorShift = useAquariumStore(state => state.colorShift);
   const originalPosition = useRef(new Vector3(...position));
   const floorY = -2.8; // Matches SandFloor position
-  const lastClickTime = useRef(0);
-  const clickCooldown = 1000; // 1 second cooldown between clicks
   
   // Create material once and reuse
   const material = useMemo(() => {
@@ -102,23 +100,12 @@ export function Crystal({
     // Stop event propagation to prevent it from reaching objects behind
     e.stopPropagation();
     
-    // Implement click cooldown to prevent rapid clicking
-    const now = Date.now();
-    if (now - lastClickTime.current < clickCooldown) return;
-    lastClickTime.current = now;
-    
     if (isExploding) return;
     
     setIsExploding(true);
-    
     if (onExplode && crystalRef.current) {
-      // Immediate feedback
       const pos = crystalRef.current.position.toArray() as [number, number, number];
-      
-      // Use requestAnimationFrame to delay the callback slightly for smoother animation
-      requestAnimationFrame(() => {
-        onExplode(pos);
-      });
+      onExplode(pos);
     }
 
     // Reset after animation
@@ -161,7 +148,15 @@ export function Crystal({
       renderOrder={10} // Higher render order to ensure it renders on top
     >
       <octahedronGeometry args={[0.5, 0]} />
-      <primitive object={material} />
+      <meshStandardMaterial 
+        color={color}
+        emissive={color}
+        emissiveIntensity={isHovered ? 0.6 : 0.3}
+        roughness={0.2}
+        metalness={0.8}
+        transparent={true}
+        opacity={1}
+      />
     </mesh>
   );
 }

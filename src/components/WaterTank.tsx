@@ -1,10 +1,10 @@
 
 import { useRef } from 'react';
 import * as THREE from 'three';
+import { useWaterAnimation } from '../hooks/useWaterAnimation';
 import { WaterMaterial } from './tank/WaterMaterial';
 import { GlassMaterial } from './tank/GlassMaterial';
 import { Bubbles } from './tank/Bubbles';
-import { WaterSurface } from './tank/WaterSurface';
 
 interface WaterTankProps {
   size: [number, number, number];
@@ -16,8 +16,11 @@ interface WaterTankProps {
 export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = false }: WaterTankProps) {
   const [width, height, depth] = size;
   const waterRef = useRef<THREE.Mesh>(null);
+  const waterSurfaceRef = useRef<THREE.Mesh>(null);
   const glassRef = useRef<THREE.Mesh>(null);
   const edgesRef = useRef<THREE.LineSegments>(null);
+
+  useWaterAnimation({ waterRef, waterSurfaceRef, width, height, depth, audioLevel });
 
   return (
     <group>
@@ -30,13 +33,18 @@ export function WaterTank({ size, children, audioLevel = 0, useSimpleMaterial = 
         <WaterMaterial useSimpleMaterial={useSimpleMaterial} />
       </mesh>
       
-      {/* Dynamic water surface - now using the extracted component */}
-      <WaterSurface 
-        width={width} 
-        depth={depth} 
-        height={height} 
-        audioLevel={audioLevel} 
-      />
+      {/* Dynamic water surface */}
+      <mesh ref={waterSurfaceRef} renderOrder={3}>
+        <planeGeometry args={[width * 0.98, depth * 0.98, 16, 16]} />
+        <meshPhysicalMaterial 
+          color="#77ddff"
+          transparent
+          opacity={0.7}
+          metalness={0.5}
+          roughness={0.1}
+          clearcoat={1.0}
+        />
+      </mesh>
       
       {/* Glass walls */}
       <mesh ref={glassRef} position={[0, 0, 0]} renderOrder={2}>

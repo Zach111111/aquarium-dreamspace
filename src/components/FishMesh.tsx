@@ -10,7 +10,6 @@ interface FishMeshProps {
   onPointerDown: (e: ThreeEvent<PointerEvent>) => void;
   onPointerOver: (e: ThreeEvent<PointerEvent>) => void;
   onPointerOut: (e: ThreeEvent<PointerEvent>) => void;
-  scale?: THREE.Vector3 | [number, number, number] | number;
 }
 
 export function FishBody({ 
@@ -19,8 +18,7 @@ export function FishBody({
   isClicked,
   onPointerDown,
   onPointerOver,
-  onPointerOut,
-  scale = [1, 0.6, 0.5]
+  onPointerOut
 }: FishMeshProps) {
   const bodyRef = useRef<THREE.Mesh>(null);
 
@@ -31,18 +29,10 @@ export function FishBody({
     roughness: 0.4
   }), [color, isHovered, isClicked]);
 
-  // Convert scale to a proper Three.js scale format
-  const scaleVector = useMemo(() => {
-    if (typeof scale === 'number') {
-      return [scale, scale, scale] as [number, number, number];
-    }
-    return scale;
-  }, [scale]);
-
   return (
     <mesh 
       ref={bodyRef}
-      scale={scaleVector}
+      scale={[1, 0.6, 0.5]}
       onPointerDown={onPointerDown}
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}
@@ -59,8 +49,7 @@ export function FishTail({
   isClicked,
   onPointerDown,
   onPointerOver,
-  onPointerOut,
-  scale = [0.4, 0.3, 0.2]
+  onPointerOut
 }: FishMeshProps) {
   const tailRef = useRef<THREE.Mesh>(null);
 
@@ -71,19 +60,11 @@ export function FishTail({
     roughness: 0.4
   }), [color, isHovered, isClicked]);
 
-  // Convert scale to a proper Three.js scale format
-  const scaleVector = useMemo(() => {
-    if (typeof scale === 'number') {
-      return [scale, scale, scale] as [number, number, number];
-    }
-    return scale;
-  }, [scale]);
-
   return (
     <mesh 
       ref={tailRef}
       position={[-0.4, 0, 0]} 
-      scale={scaleVector}
+      scale={[0.4, 0.3, 0.2]}
       onPointerDown={onPointerDown}
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}

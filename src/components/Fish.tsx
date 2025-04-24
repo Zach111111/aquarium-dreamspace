@@ -1,10 +1,10 @@
 
-import { useState, useMemo, useRef, forwardRef } from 'react';
+import { useState, useMemo } from 'react';
 import { ThreeEvent } from '@react-three/fiber';
-import { Group, Vector3, MathUtils } from 'three';
+import { Vector3, MathUtils } from 'three';
 import { useAquariumStore } from '../store/aquariumStore';
 import { toast } from "@/components/ui/use-toast";
-import { useFishBehavior } from '../hooks/useFishBehavior';
+import { useFishMovement } from '../hooks/useFishMovement';
 import { FishBody, FishTail } from './FishMesh';
 
 interface FishProps {
@@ -15,67 +15,39 @@ interface FishProps {
   index: number;
   audioLevel?: number;
   groupOffset?: { x: number; y: number; z: number };
-  groupIndex?: number;
-  crystalPositions?: Vector3[];
-  groupFishRefs?: React.MutableRefObject<Group | null>[];
-  isGroupLeader?: boolean;
-  personalityFactor?: number;
 }
 
-export const Fish = forwardRef<Group, FishProps>(({ 
+export function Fish({ 
   color = '#A5F3FF',
   scale = 1, 
   speed = 1,
   tankSize,
   index,
-  groupOffset = { x: 0, y: 0, z: 0 },
-  groupIndex = 0,
-  crystalPositions = [],
-  groupFishRefs = [],
-  isGroupLeader = false,
-  personalityFactor = 1.0
-}: FishProps, ref) => {
+  groupOffset = { x: 0, y: 0, z: 0 }
+}: FishProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
   const decrementScore = useAquariumStore(state => state.decrementScore);
-  
-  // Define a size variation based on position in the school
-  const sizeVariation = useMemo(() => {
-    return isGroupLeader ? 1.2 : 0.8 + Math.random() * 0.4;
-  }, [isGroupLeader]);
-  
-  const adjustedScale = scale * sizeVariation;
-  
-  // Define initial position offset by group
-  const initialPosition = useMemo(() => new Vector3(
-    MathUtils.lerp(-(tankSize[0]/2) * 0.7, (tankSize[0]/2) * 0.7, Math.random()) + groupOffset.x,
-    MathUtils.lerp(-(tankSize[1]/2) * 0.7, (tankSize[1]/2) * 0.7, Math.random()) + groupOffset.y,
-    MathUtils.lerp(-(tankSize[2]/2) * 0.7, (tankSize[2]/2) * 0.7, Math.random()) + groupOffset.z
-  ), [tankSize, groupOffset]);
 
-  // Calculate speed variations based on size
-  const adjustedSpeed = useMemo(() => {
-    // Smaller fish move faster
-    const sizeSpeedFactor = 1.5 - (adjustedScale * 0.5);
-    return speed * sizeSpeedFactor;
-  }, [speed, adjustedScale]);
-  
-  // Use the fish behavior hook
-  const internalFishRef = useRef<Group>(null);
-  const fishRef = ref || internalFishRef;
-  
-  useFishBehavior({
+  const initialPosition = useMemo(() => new Vector3(
+    MathUtils.lerp(-(tankSize[0]/2) * 0.8, (tankSize[0]/2) * 0.8, Math.random()),
+    MathUtils.lerp(-(tankSize[1]/2) * 0.8, (tankSize[1]/2) * 0.8, Math.random()),
+    MathUtils.lerp(-(tankSize[2]/2) * 0.8, (tankSize[2]/2) * 0.8, Math.random())
+  ), [tankSize]);
+
+  const movementParams = useMemo(() => ({
+    amplitude: 0.01 + Math.random() * 0.01,
+    frequency: 0.5 + Math.random() * 1.0,
+    phaseOffset: Math.random() * Math.PI * 2 + index * (Math.PI / 4),
+    verticalFactor: 0.3 + Math.random() * 0.7
+  }), [index]);
+
+  const { fishRef } = useFishMovement({
     initialPosition,
-    fishSize: adjustedScale,
-    speed: adjustedSpeed,
-    personalityFactor,
+    movementParams,
+    speed,
     tankSize,
-    groupIndex,
-    fishIndex: index,
-    crystalPositions,
-    fishRefs: groupFishRefs,
-    isFishLeader: isGroupLeader,
-    fishRef: fishRef as React.MutableRefObject<Group | null>
+    groupOffset
   });
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -103,47 +75,24 @@ export const Fish = forwardRef<Group, FishProps>(({
     setIsHovered(false);
   };
 
-  // Scale fish based on size variation - ensure these are tuples with exactly 3 elements
-  const bodyScale: [number, number, number] = [
-    adjustedScale, 
-    adjustedScale * 0.6, 
-    adjustedScale * 0.5
-  ];
-  
-  const tailScale: [number, number, number] = [
-    adjustedScale * 0.4, 
-    adjustedScale * 0.3, 
-    adjustedScale * 0.2
-  ];
-
-  // Use different colors for leader fish
-  const fishColor = isGroupLeader ? 
-    color.replace('hsl(', 'hsl(').replace(', ', ', ').replace('%)', '%)') : 
-    color;
-
   return (
     <group ref={fishRef} position={initialPosition.toArray()} renderOrder={5}>
       <FishBody 
-        color={fishColor}
+        color={color}
         isHovered={isHovered}
         isClicked={isClicked}
         onPointerDown={handlePointerDown}
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
-        scale={bodyScale}
       />
       <FishTail 
-        color={fishColor}
+        color={color}
         isHovered={isHovered}
         isClicked={isClicked}
         onPointerDown={handlePointerDown}
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
-        scale={tailScale}
       />
     </group>
   );
-});
-
-// Add display name for better debugging
-Fish.displayName = 'Fish';
+}
