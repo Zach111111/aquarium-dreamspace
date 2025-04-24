@@ -1,6 +1,6 @@
 
 import { useFrame } from '@react-three/fiber';
-import { RefObject } from 'react';
+import { RefObject, useMemo } from 'react';
 import * as THREE from 'three';
 import { noise2D, gerstnerWave } from '../utils/noise';
 
@@ -21,6 +21,9 @@ export const useWaterAnimation = ({
   depth,
   audioLevel 
 }: UseWaterAnimationProps) => {
+  // Create reusable vector for calculations
+  const tempPosition = useMemo(() => new THREE.Vector3(), []);
+  
   useFrame(({ clock }) => {
     const time = clock.getElapsedTime();
     

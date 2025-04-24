@@ -1,7 +1,7 @@
 
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
@@ -19,6 +19,7 @@ export function AquariumScene() {
   const incrementScore = useAquariumStore(state => state.incrementScore);
   const tankSize: [number, number, number] = [10, 6, 10];
   const [dynamicFishGroups, setDynamicFishGroups] = useState<any[]>([]);
+  const [lastClickTime, setLastClickTime] = useState(0);
 
   // Create fish groups (4-5 groups of 2-3 fish each)
   const fishGroups = useMemo(() => {
@@ -83,8 +84,8 @@ export function AquariumScene() {
     return crystals;
   }, [tankSize]);
 
-  // Create a new fish group at a specific position
-  const createNewFishGroup = (position: [number, number, number]) => {
+  // Create a new fish group at a specific position - using useCallback to prevent recreating on every render
+  const createNewFishGroup = useCallback((position: [number, number, number]) => {
     const groupSize = 2 + Math.floor(Math.random() * 2); // 2-3 fish
     const group = Array.from({ length: groupSize }, (_, index) => ({
       scale: 0.7 + Math.random() * 0.3,
@@ -103,24 +104,34 @@ export function AquariumScene() {
     }));
     
     setDynamicFishGroups(prevGroups => [...prevGroups, group]);
-  };
+  }, []);
 
-  const handleCrystalExplode = (position: [number, number, number]) => {
+  const handleCrystalExplode = useCallback((position: [number, number, number]) => {
+    const currentTime = Date.now();
+    
+    // Add click cooldown to prevent rapid fire
+    if (currentTime - lastClickTime < 300) return;
+    
+    setLastClickTime(currentTime);
     incrementScore();
     
-    // Create 1-2 new fish groups when a crystal is collected
-    const newGroupsCount = 1 + Math.floor(Math.random() * 2);
-    for (let i = 0; i < newGroupsCount; i++) {
-      createNewFishGroup(position);
-    }
-    
+    // Show toast immediately for responsive feedback
     toast({
       title: "Crystal collected!",
       description: "+1",
       variant: "default",
       className: "bg-[#1A1F2C] border-[#7E69AB] text-[#D6BCFA] compact-toast",
     });
-  };
+    
+    // Create new fish groups with slight delay to improve performance
+    setTimeout(() => {
+      // Create 1-2 new fish groups when a crystal is collected
+      const newGroupsCount = 1 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < newGroupsCount; i++) {
+        createNewFishGroup(position);
+      }
+    }, 100);
+  }, [incrementScore, createNewFishGroup, lastClickTime]);
 
   const handleCanvasError = (event: React.SyntheticEvent) => {
     console.error("Canvas render error:", event);

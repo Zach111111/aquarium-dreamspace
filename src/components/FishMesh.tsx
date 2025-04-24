@@ -22,6 +22,7 @@ export function FishBody({
 }: FishMeshProps) {
   const bodyRef = useRef<THREE.Mesh>(null);
 
+  // Use useMemo to create material to prevent recreating it every render
   const material = useMemo(() => new THREE.MeshStandardMaterial({
     color: isClicked ? '#ff6666' : color,
     emissive: color,
@@ -53,6 +54,7 @@ export function FishTail({
 }: FishMeshProps) {
   const tailRef = useRef<THREE.Mesh>(null);
 
+  // Use useMemo to create material to prevent recreating it every render
   const material = useMemo(() => new THREE.MeshStandardMaterial({
     color: isClicked ? '#ff6666' : color,
     emissive: color,

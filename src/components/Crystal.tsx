@@ -28,6 +28,7 @@ export function Crystal({
   const colorShift = useAquariumStore(state => state.colorShift);
   const originalPosition = useRef(new Vector3(...position));
   const floorY = -2.8; // Matches SandFloor position
+  const [lastClickTime, setLastClickTime] = useState(0);
   
   // Create material once and reuse
   const material = useMemo(() => {
@@ -71,9 +72,9 @@ export function Crystal({
       }
 
       // Hover effect - pulsing glow
-      if (isHovered && material.emissiveIntensity) {
+      if (isHovered && material.emissiveIntensity !== undefined) {
         material.emissiveIntensity = 0.3 + Math.sin(time * 6) * 0.3;
-      } else {
+      } else if (material.emissiveIntensity !== undefined && !isExploding) {
         material.emissiveIntensity = 0.3;
       }
     }
@@ -96,13 +97,16 @@ export function Crystal({
     };
   }, [material]);
 
-  const handlePointerDown = (e) => {
+  const handlePointerDown = (e: any) => {
     // Stop event propagation to prevent it from reaching objects behind
     e.stopPropagation();
     
-    if (isExploding) return;
+    const currentTime = Date.now();
+    if (isExploding || currentTime - lastClickTime < 300) return;
     
+    setLastClickTime(currentTime);
     setIsExploding(true);
+    
     if (onExplode && crystalRef.current) {
       const pos = crystalRef.current.position.toArray() as [number, number, number];
       onExplode(pos);
@@ -148,15 +152,7 @@ export function Crystal({
       renderOrder={10} // Higher render order to ensure it renders on top
     >
       <octahedronGeometry args={[0.5, 0]} />
-      <meshStandardMaterial 
-        color={color}
-        emissive={color}
-        emissiveIntensity={isHovered ? 0.6 : 0.3}
-        roughness={0.2}
-        metalness={0.8}
-        transparent={true}
-        opacity={1}
-      />
+      <primitive object={material} />
     </mesh>
   );
 }
