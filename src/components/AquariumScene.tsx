@@ -1,7 +1,7 @@
 
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingFallback } from './LoadingFallback';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import { useAquariumStore } from '../store/aquariumStore';
@@ -9,7 +9,7 @@ import { WaterTank } from './WaterTank';
 import { SandFloor } from './SandFloor';
 import { ScoreDisplay } from './ScoreDisplay';
 import { FishSchools } from './aquarium/FishSchools';
-import { DynamicFishGroups } from './aquarium/DynamicFishGroups';
+import { DynamicFishGroups, DynamicFishGroupsHandle } from './aquarium/DynamicFishGroups';
 import { AquariumEnvironment } from './aquarium/AquariumEnvironment';
 import { toast } from "@/components/ui/use-toast";
 import { Vector3 } from 'three';
@@ -20,22 +20,17 @@ export function AquariumScene() {
   const tankSize: [number, number, number] = [10, 6, 10];
   const [crystalPositions, setCrystalPositions] = useState<Vector3[]>([]);
   
-  // Reference to the DynamicFishGroups component to call its createNewFishGroup method
-  const [dynamicFishGroupsRef, setDynamicFishGroupsRef] = useState<any>(null);
-  
-  const createNewFishGroup = (position: [number, number, number]) => {
-    // This function will be available through ref to DynamicFishGroups
-    if (dynamicFishGroupsRef && dynamicFishGroupsRef.createNewFishGroup) {
-      dynamicFishGroupsRef.createNewFishGroup(position);
-    }
-  };
+  // Use useRef with the correct type for DynamicFishGroups
+  const dynamicFishGroupsRef = useRef<DynamicFishGroupsHandle>(null);
   
   const handleCrystalExplode = (position: [number, number, number]) => {
     incrementScore();
     
     const newGroupsCount = 1 + Math.floor(Math.random() * 2);
     for (let i = 0; i < newGroupsCount; i++) {
-      createNewFishGroup(position);
+      if (dynamicFishGroupsRef.current) {
+        dynamicFishGroupsRef.current.createNewFishGroup(position);
+      }
     }
     
     toast({
@@ -92,7 +87,7 @@ export function AquariumScene() {
               <DynamicFishGroups 
                 tankSize={tankSize}
                 crystalPositions={crystalPositions}
-                ref={setDynamicFishGroupsRef}
+                ref={dynamicFishGroupsRef}
               />
               <AquariumEnvironment 
                 tankSize={tankSize}
